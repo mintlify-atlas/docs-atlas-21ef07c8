@@ -15,7 +15,7 @@ export const render = (vlist, dom, ns) => { /* ... */ }
 
 ## Parameters
 
-<ParamField path="vnode" type="VNode | VNode[]" required>
+<ParamField path="vlist" type="VNode | VNode[]" required>
   The virtual node(s) to render. Can be a single VNode or an array of VNodes.
 </ParamField>
 
@@ -46,7 +46,7 @@ The `render()` function performs efficient DOM updates through:
 ### Basic Rendering
 
 ```javascript
-import { x, render } from './o.mjs';
+import { x, render } from '@zserge/o';
 
 const app = x`<div><h1>Hello World</h1></div>`;
 
@@ -56,7 +56,7 @@ render(app, document.body);
 ### Rendering a Component
 
 ```javascript
-import { x, render } from './o.mjs';
+import { x, render } from '@zserge/o';
 
 const MyComponent = ({ name }) => x`
   <div className="greeting">
@@ -70,7 +70,7 @@ render(x`<${MyComponent} name="Alice" />`, document.body);
 ### Re-rendering on State Change
 
 ```javascript
-import { x, render, useState } from './o.mjs';
+import { x, render, useState } from '@zserge/o';
 
 const Counter = () => {
   const [count, setCount] = useState(0);
@@ -94,7 +94,7 @@ render(app, container);
 ### Rendering SVG
 
 ```javascript
-import { x, render } from './o.mjs';
+import { x, render } from '@zserge/o';
 
 const svgContent = x`
   <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
@@ -108,7 +108,7 @@ render(svgContent, document.body);
 ### Multiple Root Nodes
 
 ```javascript
-import { x, render } from './o.mjs';
+import { x, render } from '@zserge/o';
 
 const Header = () => x`<header>Header</header>`;
 const Main = () => x`<main>Content</main>`;

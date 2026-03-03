@@ -12,7 +12,7 @@ Custom hooks let you extract component logic into reusable functions. They're ju
 Track the browser window width with automatic cleanup:
 
 ```javascript
-import { useState, useEffect } from './o.mjs';
+import { useState, useEffect } from '@zserge/o';
 
 const useWindowWidth = () => {
   const [width, setWidth] = useState(window.innerWidth);
@@ -49,7 +49,7 @@ const ResponsiveComponent = () => {
 Persist state to localStorage with automatic synchronization:
 
 ```javascript
-import { useState, useEffect } from './o.mjs';
+import { useState, useEffect } from '@zserge/o';
 
 const useLocalStorage = (key, initialValue) => {
   // Initialize from localStorage or use initial value
@@ -92,7 +92,7 @@ const PreferencesComponent = () => {
 Combine multiple custom hooks:
 
 ```javascript
-import { h, x, render, useState, useEffect } from './o.mjs';
+import { h, x, render, useState, useEffect } from '@zserge/o';
 
 const useLocalStorage = (key, initialValue) => {
   const [value, setValue] = useState(() => {

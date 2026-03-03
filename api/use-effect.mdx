@@ -50,7 +50,7 @@ void (or optionally a cleanup function from the callback)
 ### Window Resize Listener
 
 ```javascript
-import { x, useState, useEffect } from './o.mjs';
+import { x, useState, useEffect } from '@zserge/o';
 
 const WindowWidth = () => {
   const [width, setWidth] = useState(window.innerWidth);
@@ -71,7 +71,7 @@ const WindowWidth = () => {
 ### Document Title Update
 
 ```javascript
-import { x, useState, useEffect } from './o.mjs';
+import { x, useState, useEffect } from '@zserge/o';
 
 const PageTitle = ({ title }) => {
   useEffect(() => {
@@ -85,7 +85,7 @@ const PageTitle = ({ title }) => {
 ### API Data Fetching
 
 ```javascript
-import { x, useState, useEffect } from './o.mjs';
+import { x, useState, useEffect } from '@zserge/o';
 
 const UserProfile = ({ userId }) => {
   const [user, setUser] = useState(null);
@@ -116,7 +116,7 @@ const UserProfile = ({ userId }) => {
 ### Timer/Interval
 
 ```javascript
-import { x, useState, useEffect } from './o.mjs';
+import { x, useState, useEffect } from '@zserge/o';
 
 const Timer = () => {
   const [seconds, setSeconds] = useState(0);
@@ -136,7 +136,7 @@ const Timer = () => {
 ### DOM Manipulation
 
 ```javascript
-import { x, useEffect } from './o.mjs';
+import { x, useEffect } from '@zserge/o';
 
 const AutoFocus = () => {
   let inputRef;
@@ -161,7 +161,7 @@ const AutoFocus = () => {
 ### Multiple Effects
 
 ```javascript
-import { x, useState, useEffect } from './o.mjs';
+import { x, useState, useEffect } from '@zserge/o';
 
 const MultiEffect = ({ userId }) => {
   const [user, setUser] = useState(null);
@@ -200,7 +200,7 @@ const MultiEffect = ({ userId }) => {
 ### Local Storage Sync
 
 ```javascript
-import { x, useState, useEffect } from './o.mjs';
+import { x, useState, useEffect } from '@zserge/o';
 
 const PersistentCounter = () => {
   const [count, setCount] = useState(() => {

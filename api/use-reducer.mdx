@@ -56,7 +56,7 @@ export const useReducer = (reducer, initialState) => {
 ### Counter with Actions
 
 ```javascript
-import { x, useReducer } from './o.mjs';
+import { x, useReducer } from '@zserge/o';
 
 const reducer = (state, action) => {
   switch (action) {
@@ -82,7 +82,7 @@ const Counter = () => {
 ### Complex State with Action Objects
 
 ```javascript
-import { x, useReducer } from './o.mjs';
+import { x, useReducer } from '@zserge/o';
 
 const initialState = {
   count: 0,
@@ -127,7 +127,7 @@ const StepCounter = () => {
 ### Todo List with Reducer
 
 ```javascript
-import { x, useReducer, useState } from './o.mjs';
+import { x, useReducer, useState } from '@zserge/o';
 
 const todoReducer = (state, action) => {
   switch (action.type) {

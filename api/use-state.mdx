@@ -38,7 +38,7 @@ export const useState = initialState => useReducer((_, v) => v, initialState);
 ### Counter Example
 
 ```javascript
-import { x, useState } from './o.mjs';
+import { x, useState } from '@zserge/o';
 
 const Counter = () => {
   const [count, setCount] = useState(0);
@@ -55,7 +55,7 @@ const Counter = () => {
 ### String State
 
 ```javascript
-import { x, useState } from './o.mjs';
+import { x, useState } from '@zserge/o';
 
 const NameInput = () => {
   const [name, setName] = useState('');
@@ -76,7 +76,7 @@ const NameInput = () => {
 ### Object State
 
 ```javascript
-import { x, useState } from './o.mjs';
+import { x, useState } from '@zserge/o';
 
 const UserForm = () => {
   const [user, setUser] = useState({ name: '', email: '' });
@@ -107,7 +107,7 @@ const UserForm = () => {
 ### Array State
 
 ```javascript
-import { x, useState } from './o.mjs';
+import { x, useState } from '@zserge/o';
 
 const TodoList = () => {
   const [todos, setTodos] = useState([]);
@@ -139,7 +139,7 @@ const TodoList = () => {
 ### Toggle State
 
 ```javascript
-import { x, useState } from './o.mjs';
+import { x, useState } from '@zserge/o';
 
 const Toggle = () => {
   const [isOn, setIsOn] = useState(false);

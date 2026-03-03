@@ -8,7 +8,7 @@ description: Build reusable UI components with simple JavaScript functions
 Functional components are JavaScript functions that take properties (props) and return virtual nodes. They're the building blocks for creating reusable, composable UI in O!.
 
 ```javascript
-import { h } from 'o.mjs';
+import { h } from '@zserge/o';
 
 const Greeting = (props) => {
   return h('div', {}, `Hello, ${props.name}!`);
@@ -100,7 +100,7 @@ In practice, you'll rarely use `forceUpdate` directly. Instead, use the `useStat
 Here's the complete counter example from `counter.html`:
 
 ```javascript
-import { h, x, render, useState } from './o.mjs';
+import { h, x, render, useState } from '@zserge/o';
 
 const Counter = ({ name = 'Counter', initialValue = 0 }) => {
   const [value, setValue] = useState(initialValue);
