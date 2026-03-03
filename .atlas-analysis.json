@@ -1,0 +1,72 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "O!",
+  "projectDescription": "A tiny (~1KB) React-like library with JSX-like syntax and hooks for building UI components",
+  "theme": "palm",
+  "primaryColor": "#FF6B35",
+  "lightColor": "#FFB88C",
+  "darkColor": "#CC4420",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "introduction",
+          "installation",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Core Concepts",
+        "pages": [
+          "concepts/virtual-nodes",
+          "concepts/functional-components",
+          "concepts/template-syntax"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "pages": [
+          "api/h",
+          "api/x",
+          "api/render",
+          "api/use-state",
+          "api/use-reducer",
+          "api/use-effect"
+        ]
+      },
+      {
+        "group": "Examples",
+        "pages": [
+          "examples/counter",
+          "examples/todo-list",
+          "examples/custom-hooks"
+        ]
+      },
+      {
+        "group": "Advanced",
+        "pages": [
+          "advanced/how-it-works",
+          "advanced/limitations",
+          "advanced/comparison"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Ultra-small footprint (~1KB minified and gzipped)",
+    "JSX-like template syntax with tagged templates",
+    "React-like hooks (useState, useReducer, useEffect)",
+    "Functional components with virtual DOM",
+    "SVG support",
+    "Zero dependencies and no transpiler required"
+  ],
+  "publicApiSurface": [
+    "h(nodeName, properties, ...children)",
+    "x`<template>`",
+    "render(vnode, containerNode)",
+    "useState(initialValue)",
+    "useReducer(reducer, initialState)",
+    "useEffect(callback, deps)"
+  ]
+}
