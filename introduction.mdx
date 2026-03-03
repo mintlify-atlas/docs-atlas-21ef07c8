@@ -1,0 +1,88 @@
+---
+title: Introduction
+description: O! is a tiny (~1KB) React-like library that explains how modern UI frameworks work through minimalism and simplicity.
+---
+
+# Welcome to O!
+
+O! is a very small (under 1KB) library designed to explain how React-like libraries work. It started as a quick morning experiment some cold autumn Friday, driven by the joy of seeing a simple counter component finally working. It's really an exercise in minimalism - never meant to be used in serious projects, but perfect for learning and experimentation.
+
+## Why O!?
+
+The library is called "O!" - a sound of realization once you understood how simple it is. Or despair, if you caught a fatal bug after deciding to use this in production. It also resembles a zero, which is a metaphor for both library footprint and usefulness.
+
+Despite its humble goals, O! packs surprisingly complete features for understanding modern UI frameworks.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Tiny Footprint" icon="feather">
+    Around 1KB when minified and gzipped - small enough to understand completely.
+  </Card>
+  
+  <Card title="React Hooks" icon="hook">
+    Includes `useState`, `useReducer`, and `useEffect` hooks, just like real React.
+  </Card>
+  
+  <Card title="JSX-Like Syntax" icon="code">
+    Custom template syntax sugar using tagged templates, very similar to normal HTML.
+  </Card>
+  
+  <Card title="Zero Dependencies" icon="cube">
+    No dependencies, no transpiler needed. Just import a single file as a module.
+  </Card>
+</CardGroup>
+
+## What's Included
+
+- **Core API**: `h()` and `render()` functions with support for functional components
+- **State Management**: `useState` and `useReducer` hooks for component state
+- **Side Effects**: `useEffect` hook for lifecycle management
+- **Template Syntax**: `` x` ` `` tagged template for HTML-like component markup
+- **SVG Support**: Built-in support for SVG tags
+- **Browser Modules**: Native ES module support - no build step required
+
+## Quick Example
+
+Here's a taste of what O! looks like:
+
+```javascript
+import { h, x, render, useState } from '@zserge/o';
+
+const Counter = ({ initialValue = 0 }) => {
+  const [value, setValue] = useState(initialValue);
+  return x`
+    <div className="counter">
+      <div>${value}</div>
+      <div className="row">
+        <button onclick=${() => setValue(value + 1)}>+</button>
+        <button onclick=${() => setValue(value - 1)}>-</button>
+      </div>
+    </div>
+  `;
+};
+
+render(h(Counter, { initialValue: 10 }), document.body);
+```
+
+## Get Started
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Build your first counter app in minutes
+  </Card>
+  
+  <Card title="API Reference" icon="book" href="/api/h">
+    Explore the complete API documentation
+  </Card>
+  
+  <Card title="Examples" icon="flask" href="/examples/counter">
+    See more examples and use cases
+  </Card>
+</CardGroup>
+
+## Not for Production
+
+A friendly reminder: O! is an educational project meant to help you understand how React-like libraries work under the hood. Once you understand O!, you'll be better prepared to move on to more appropriate React clones. The diffing algorithm is intentionally simple (and inefficient) to keep the codebase small and understandable.
+
+For more background on how O! originated, check out [this blog post](https://zserge.com/posts/worst-react-ever/).

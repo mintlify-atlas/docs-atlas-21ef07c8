@@ -1,0 +1,395 @@
+---
+title: Template Syntax
+description: Write JSX-like HTML without a transpiler using tagged templates
+---
+
+## What is Template Syntax?
+
+O! provides a template syntax using JavaScript's tagged template literals that feels like writing JSX, but without requiring a build step or transpiler. The `` x` ` `` function converts HTML-like strings into virtual nodes.
+
+```javascript
+import { x } from 'o.mjs';
+
+// Instead of this:
+const vnode = h('div', { className: 'container' },
+  h('h1', {}, 'Hello!'),
+  h('p', {}, 'Welcome')
+);
+
+// Write this:
+const vnode = x`
+  <div className="container">
+    <h1>Hello!</h1>
+    <p>Welcome</p>
+  </div>
+`;
+```
+
+<Tip>
+The `` x` ` `` syntax is pure JavaScript (ES6 tagged templates) - no build tools needed!
+</Tip>
+
+## Basic Syntax Rules
+
+The template parser has specific rules that must be followed:
+
+### 1. Attributes Must Be Double-Quoted
+
+Constant attribute values must use double quotes:
+
+```javascript
+// ✅ Correct
+x`<div className="container" id="main"></div>`
+
+// ❌ Wrong - single quotes not supported
+x`<div className='container'></div>`
+
+// ❌ Wrong - unquoted attributes not supported
+x`<div className=container></div>`
+```
+
+### 2. Self-Closing Tags
+
+Tags without children should be self-closed:
+
+```javascript
+// ✅ Correct
+x`<input type="text" />`
+x`<img src="logo.png" />`
+x`<br />`
+
+// ✅ Also correct
+x`<div></div>`
+```
+
+### 3. Single Top-Level Element
+
+There must be exactly one root element:
+
+```javascript
+// ✅ Correct - single root
+x`
+  <div>
+    <h1>Title</h1>
+    <p>Content</p>
+  </div>
+`
+
+// ❌ Wrong - multiple roots
+x`
+  <h1>Title</h1>
+  <p>Content</p>
+`
+```
+
+## Using Placeholders
+
+Placeholders (`${}`) allow you to inject dynamic values. They can appear in three positions:
+
+### 1. As Tag Names
+
+Use a component variable as the element:
+
+```javascript
+const MyComponent = (props) => x`<div>${props.text}</div>`;
+
+// Component as a placeholder
+const app = x`<${MyComponent} text="Hello" />`;
+```
+
+### 2. As Attribute Values
+
+Inject dynamic values into attributes:
+
+```javascript
+const className = 'active';
+const onClick = () => console.log('Clicked!');
+const isDisabled = false;
+
+// No quotes needed for placeholders!
+const button = x`
+  <button
+    className=${className}
+    onclick=${onClick}
+    disabled=${isDisabled}
+  >
+    Click Me
+  </button>
+`;
+```
+
+<Note>
+Placeholder attribute values should NOT be quoted. The parser treats them differently from constant strings.
+</Note>
+
+### 3. As Text Content
+
+Insert text or child elements between tags:
+
+```javascript
+const name = 'Alice';
+const count = 42;
+
+const greeting = x`
+  <div>
+    <h1>Hello, ${name}!</h1>
+    <p>Count: ${count}</p>
+  </div>
+`;
+```
+
+### 4. As Child Components
+
+Nest components and elements:
+
+```javascript
+const Header = () => x`<h1>Title</h1>`;
+const Footer = () => x`<p>Footer</p>`;
+
+const Page = () => x`
+  <div>
+    ${Header()}
+    <main>Content</main>
+    ${Footer()}
+  </div>
+`;
+```
+
+## Real-World Example: Counter
+
+From the `counter.html` example:
+
+```javascript
+const Counter = ({ name = 'Counter', initialValue = 0 }) => {
+  const [value, setValue] = useState(initialValue);
+  
+  return x`
+    <div className="counter">
+      <h1>${name}</h1>
+      <div>${value}</div>
+      <div className="row">
+        <button onclick=${() => setValue(value + 1)}>+</button>
+        <button onclick=${() => setValue(value - 1)}>-</button>
+      </div>
+    </div>
+  `;
+};
+```
+
+### Breakdown:
+
+- **Constant attributes**: `className="counter"` uses double quotes
+- **Dynamic text**: `${name}` and `${value}` inject variables as text
+- **Event handlers**: `onclick=${() => setValue(value + 1)}` passes functions
+- **Nested structure**: Proper hierarchy with one root `<div>`
+
+## How It Works
+
+The `` x` ` `` function is a tagged template literal that parses HTML strings:
+
+```javascript
+// From o.mjs:49-128
+export const x = (strings, ...fields) => {
+  // Stack of nested tags. Start with a fake top node.
+  const stack = [h()];
+  
+  // Three distinct parser states:
+  const MODE_TEXT = 0;       // Text between tags
+  const MODE_OPEN_TAG = 1;   // Opening tag with attributes
+  const MODE_CLOSE_TAG = 2;  // Closing tag
+  
+  // ... parsing logic ...
+  
+  return stack[0].c[0]; // Return first child (the root element)
+};
+```
+
+The parser:
+
+1. **Tokenizes** the template string
+2. **Switches** between three states: text, open tag, close tag
+3. **Builds** a stack of virtual nodes
+4. **Returns** the root VNode
+
+## Template Syntax vs h()
+
+Both approaches create the same VNode structure:
+
+```javascript
+// Using template syntax
+const withTemplate = x`
+  <div className="card">
+    <h1>Title</h1>
+    <p>Content</p>
+  </div>
+`;
+
+// Using h() (equivalent)
+const withH = h('div', { className: 'card' },
+  h('h1', {}, 'Title'),
+  h('p', {}, 'Content')
+);
+
+// Both create the same VNode:
+// {
+//   e: 'div',
+//   p: { className: 'card' },
+//   c: [
+//     { e: 'h1', p: {}, c: ['Title'] },
+//     { e: 'p', p: {}, c: ['Content'] }
+//   ]
+// }
+```
+
+## When to Use Each
+
+### Use `` x` ` `` When:
+
+- You have complex nested HTML structure
+- You want more readable, familiar HTML syntax
+- You're building UI with mostly static structure
+
+```javascript
+const Card = ({ title, content }) => x`
+  <div className="card">
+    <div className="card-header">
+      <h2>${title}</h2>
+    </div>
+    <div className="card-body">
+      <p>${content}</p>
+    </div>
+  </div>
+`;
+```
+
+### Use `h()` When:
+
+- You need to dynamically generate elements
+- You're mapping over arrays
+- You want more programmatic control
+
+```javascript
+const List = ({ items }) => {
+  return h('ul', {},
+    ...items.map(item =>
+      h('li', { k: item.id }, item.text)
+    )
+  );
+};
+```
+
+### Mix Both:
+
+You can combine both approaches:
+
+```javascript
+const TodoList = ({ todos }) => x`
+  <div className="todo-list">
+    <h2>My Todos</h2>
+    <ul>
+      ${todos.map(todo => x`
+        <li className=${todo.done ? 'done' : ''}>
+          ${todo.text}
+        </li>
+      `)}
+    </ul>
+  </div>
+`;
+```
+
+## Common Patterns
+
+### Conditional Rendering
+
+```javascript
+const UserGreeting = ({ user }) => x`
+  <div>
+    ${user ? x`
+      <h1>Welcome back, ${user.name}!</h1>
+    ` : x`
+      <h1>Please sign in</h1>
+    `}
+  </div>
+`;
+```
+
+### List Rendering
+
+```javascript
+const ItemList = ({ items }) => x`
+  <ul>
+    ${items.map(item => x`
+      <li>${item}</li>
+    `)}
+  </ul>
+`;
+```
+
+### Event Handlers
+
+```javascript
+const Form = () => {
+  const [text, setText] = useState('');
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Submitted:', text);
+  };
+  
+  return x`
+    <form onsubmit=${handleSubmit}>
+      <input
+        type="text"
+        value=${text}
+        oninput=${(e) => setText(e.target.value)}
+      />
+      <button type="submit">Submit</button>
+    </form>
+  `;
+};
+```
+
+### Component Composition
+
+```javascript
+const Header = () => x`<header>Header</header>`;
+const Footer = () => x`<footer>Footer</footer>`;
+
+const Layout = ({ children }) => x`
+  <div className="layout">
+    <${Header} />
+    <main>${children}</main>
+    <${Footer} />
+  </div>
+`;
+```
+
+## SVG Support
+
+Template syntax works with SVG elements using the `xmlns` attribute:
+
+```javascript
+const Icon = () => x`
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+    <path d="M12 2L2 7v10l10 5 10-5V7z" />
+  </svg>
+`;
+```
+
+## Limitations
+
+1. **No fragments**: Must have a single root element
+2. **Quoted constants**: Attribute values must be double-quoted (unless they're placeholders)
+3. **No spread operators**: Can't spread props directly in templates
+4. **Basic parsing**: Error messages may not be as helpful as JSX
+
+<Note>
+These limitations are trade-offs for having zero build step and staying under 1KB!
+</Note>
+
+## Next Steps
+
+- Learn about [Virtual Nodes](/concepts/virtual-nodes) created by templates
+- Build [Functional Components](/concepts/functional-components) with templates
+- See the [x() function](/api/x) API reference
+- Compare with the [h() function](/api/h) for programmatic VNode creation

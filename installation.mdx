@@ -1,0 +1,99 @@
+---
+title: Installation
+description: Install O! in your project with npm, yarn, pnpm, or use it directly from a CDN.
+---
+
+# Installation
+
+O! is distributed as `@zserge/o` on npm and can be installed using your preferred package manager. With zero dependencies and no transpiler required, getting started is straightforward.
+
+## Package Manager Installation
+
+Install O! using your preferred package manager:
+
+<CodeGroup>
+```bash npm
+npm install @zserge/o
+```
+
+```bash yarn
+yarn add @zserge/o
+```
+
+```bash pnpm
+pnpm add @zserge/o
+```
+</CodeGroup>
+
+## Zero Dependencies
+
+O! has **zero dependencies**, meaning:
+- No transitive dependencies to worry about
+- Minimal impact on your `node_modules` size
+- Fast installation times
+- No complex dependency tree to manage
+
+## No Transpiler Required
+
+Unlike JSX-based frameworks, O! works directly in modern browsers:
+- No Babel or TypeScript compilation needed
+- Uses native ES modules
+- Tagged template literals instead of JSX
+- Import and run immediately
+
+## CDN Usage
+
+You can use O! directly from a CDN without any installation:
+
+```html
+<!DOCTYPE html>
+<html>
+  <body></body>
+  <script type="module">
+    import { h, x, render, useState } from 'https://unpkg.com/@zserge/o/o.mjs';
+    
+    // Your component code here
+    const App = () => {
+      return x`<div>Hello, O!</div>`;
+    };
+    
+    render(h(App), document.body);
+  </script>
+</html>
+```
+
+### CDN Options
+
+You can import O! from these CDN providers:
+
+- **unpkg**: `https://unpkg.com/@zserge/o/o.mjs`
+- **jsDelivr**: `https://cdn.jsdelivr.net/npm/@zserge/o/o.mjs`
+
+For production use of the CDN, pin to a specific version:
+
+```javascript
+import { h, x, render } from 'https://unpkg.com/@zserge/o@0.0.6/o.mjs';
+```
+
+## Browser Module Support
+
+O! is packaged as a native ES module (`.mjs` extension) with:
+- Full support for modern browsers (Chrome, Firefox, Safari, Edge)
+- Dynamic imports supported
+- Top-level await compatible
+- Works with module bundlers (Webpack, Rollup, Vite, etc.)
+
+## Verify Installation
+
+After installation, verify O! is working by creating a simple test file:
+
+```javascript
+import { h, render } from '@zserge/o';
+
+const Hello = () => h('div', {}, 'Hello from O!');
+render(h(Hello), document.body);
+```
+
+## Next Steps
+
+Now that O! is installed, follow the [Quickstart guide](/quickstart) to build your first component.

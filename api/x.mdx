@@ -1,0 +1,137 @@
+---
+title: "x``"
+description: "Create virtual nodes using HTML-like template strings"
+---
+
+Create a virtual node based on HTML-like template strings. This provides a more declarative and familiar syntax compared to nested `h()` calls.
+
+## Signature
+
+```javascript
+export const x = (strings, ...fields) => { /* ... */ }
+```
+
+**Source**: o.mjs:49
+
+## Parameters
+
+<ParamField path="strings" type="Array<string>" required>
+  An array of raw string values from the template literal.
+</ParamField>
+
+<ParamField path="fields" type="...*">
+  Variadic arguments containing the placeholders (interpolated values) in the template.
+</ParamField>
+
+## Returns
+
+<ResponseField name="VNode" type="object">
+  A virtual node with properties and children based on the provided HTML markup.
+</ResponseField>
+
+## Template Syntax Rules
+
+<Note>
+**Attribute Values**: Attribute values must be double-quoted, unless they are placeholders.
+
+```javascript
+// Correct
+x`<div className="foo"></div>`
+x`<div className=${myClass}></div>`
+
+// Incorrect
+x`<div className='foo'></div>`  // Single quotes not allowed
+x`<div className=foo></div>`     // Unquoted not allowed
+```
+</Note>
+
+<Note>
+**Self-Closing Tags**: Tags can be self-closing using the `/>` syntax.
+
+```javascript
+x`<input type="text" />`
+x`<img src="logo.png" />`
+```
+</Note>
+
+<Note>
+**Placeholder Positions**: Placeholders can appear in three positions:
+
+1. **Tag names** - For dynamic components
+2. **Attribute values** - For dynamic properties
+3. **Between tags** - For text content or child elements
+
+```javascript
+// Tag name placeholder
+x`<${MyComponent} foo="bar" />`
+
+// Attribute value placeholder
+x`<div className=${myClass} />`
+
+// Content placeholder
+x`<h1>${myText}</h1>`
+```
+</Note>
+
+## Examples
+
+### Basic HTML Structure
+
+```javascript
+import { x } from './o.mjs';
+
+const vnode = x`<div className="foo"><h1>${mytext}</h1></div>`;
+```
+
+### Dynamic Attributes
+
+```javascript
+const className = 'active';
+const vnode = x`<div className=${className} />`;
+```
+
+### Component Composition
+
+```javascript
+const MyComponent = ({ foo }) => x`<p>Foo is: ${foo}</p>`;
+
+const app = x`<${MyComponent} foo="42"><p>Hello</p></${MyComponent}>`;
+```
+
+### Complex Nesting
+
+```javascript
+const TodoList = ({ items }) => x`
+  <ul className="todo-list">
+    ${items.map(item => x`
+      <li className=${item.done ? 'done' : ''}>
+        ${item.text}
+      </li>
+    `)}
+  </ul>
+`;
+```
+
+### Event Handlers
+
+```javascript
+const Button = () => {
+  const handleClick = () => console.log('Clicked!');
+  
+  return x`<button onclick=${handleClick}>Click me</button>`;
+};
+```
+
+## Comparison with h()
+
+These two expressions are equivalent:
+
+```javascript
+// Using x`` template
+const vnode1 = x`<div className="foo"><h1>Hello!</h1></div>`;
+
+// Using h() function
+const vnode2 = h('div', { className: 'foo' }, h('h1', {}, 'Hello!'));
+```
+
+The `x` template syntax is generally more readable for complex HTML structures, while `h()` offers more programmatic control.

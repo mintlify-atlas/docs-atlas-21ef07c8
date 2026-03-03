@@ -1,0 +1,288 @@
+---
+title: "How It Works"
+description: "Deep dive into O!'s internals - hooks storage, diffing algorithm, and template parser"
+---
+
+Understanding how O! works internally can help you use it more effectively and appreciate its simplicity. This guide explores the key mechanisms that power the library.
+
+## Hooks Storage
+
+O! uses a global hooks system that stores component state between renders.
+
+### Global Hooks Array
+
+When a component renders, O! maintains:
+- `hooks` - Global array storing all hooks for the current component
+- `index` - Current position in the hooks array (starts at 0)
+- `forceUpdate` - Function that triggers a re-render
+
+```javascript
+// From o.mjs:130-135
+let hooks;
+let index = 0;
+let forceUpdate;
+
+const getHook = value => {
+  let hook = hooks[index++];
+  if (!hook) {
+    hook = { value };
+    hooks.push(hook);
+  }
+  return hook;
+};
+```
+
+### How Hooks Are Stored
+
+Each component instance has its own hooks array stored on the DOM node:
+
+```javascript
+// From o.mjs:256-270
+let hs = dom.h || {};        // Previous hooks storage
+dom.h = {};                   // New hooks storage
+
+// For each component:
+const k = (v.p && v.p.k) || '' + v.e + (ids[v.e] = (ids[v.e] || 1) + 1);
+hooks = hs[k] || [];         // Retrieve old hooks by key
+index = 0;                    // Reset index
+v = v.e(v.p, v.c, forceUpdate); // Call component
+dom.h[k] = hooks;            // Store hooks for next render
+```
+
+Each component is identified by a key `k` (either explicit via `p.k` or auto-generated), and its hooks array persists between renders.
+
+<Accordion title="Why Hook Order Matters">
+Since hooks are stored in an array and accessed by index, **you must call hooks in the same order every render**. If you conditionally call hooks or call them in loops, the index will be wrong and you'll get state from the wrong hook.
+
+```javascript
+// Bad - conditional hook
+if (condition) {
+  const [state, setState] = useState(0); // Index might be 0 or skipped
+}
+
+// Good - hook always called
+const [state, setState] = useState(0);
+if (condition) {
+  // Use the state here
+}
+```
+</Accordion>
+
+## Render and Diffing Algorithm
+
+O! uses a simple virtual DOM diffing algorithm to update the real DOM efficiently.
+
+### Render Process
+
+The `render()` function (o.mjs:251) follows these steps:
+
+1. **Convert to array**: `vlist = [].concat(vlist)` ensures we always work with an array
+2. **Process each virtual node**: For each node in the virtual tree:
+   - Set up `forceUpdate` to re-render this tree
+   - If node is a function (component), call it to get the real virtual node
+   - Create or reuse DOM nodes
+   - Patch properties
+   - Recursively render children
+3. **Fire useEffect callbacks**: After rendering is complete
+4. **Clean up removed nodes**: Call cleanup functions for unmounted components
+
+### The Diffing Algorithm
+
+<Warning>
+O!'s diffing algorithm is **intentionally simple and inefficient**. It's designed for learning, not production use.
+</Warning>
+
+From o.mjs:282-285:
+
+```javascript
+let node = dom.childNodes[i];
+if (!node || (v.e ? node.e !== v.e : node.data !== v)) {
+  node = dom.insertBefore(createNode(), node);
+}
+```
+
+The algorithm checks:
+- **Position-based matching**: Compares virtual nodes to DOM nodes by array index
+- **Tag/text comparison**: If tags match (for elements) or text matches (for text nodes), reuse the node
+- **Otherwise**: Create and insert a new node
+
+This is much simpler than React's reconciliation:
+- No key-based diffing (except for component state)
+- No move operations - only create/update/remove
+- Linear scan, no optimization
+
+<Accordion title="Property Patching">
+For each element property (o.mjs:288-296):
+
+```javascript
+for (const propName in v.p) {
+  if (node[propName] !== v.p[propName]) {
+    if (nsURI) {
+      node.setAttribute(propName, v.p[propName]);
+    } else {
+      node[propName] = v.p[propName];
+    }
+  }
+}
+```
+
+O! sets properties directly on DOM nodes (not attributes), except for SVG elements which use `setAttribute`. This is why you use `className` instead of `class`.
+</Accordion>
+
+## Force Update Mechanism
+
+When you call a state setter (from `useState` or `useReducer`), it triggers a re-render:
+
+```javascript
+// From o.mjs:176-179
+const update = forceUpdate;  // Capture current forceUpdate
+const dispatch = action => {
+  hook.value = reducer(hook.value, action);
+  update();                   // Trigger re-render
+};
+```
+
+The `forceUpdate` function is set during render to call `render(vlist, dom)` with the same arguments, causing the entire component tree to be re-evaluated.
+
+## Template Parser (x``)
+
+The `x` template tag parser converts HTML-like strings into virtual nodes.
+
+### Parser Modes
+
+The parser is a state machine with three modes (o.mjs:55-58):
+
+```javascript
+const MODE_TEXT = 0;       // Text between tags
+const MODE_OPEN_TAG = 1;   // Inside opening tag, reading attributes
+const MODE_CLOSE_TAG = 2;  // Inside closing tag
+let mode = MODE_TEXT;
+```
+
+### How Parsing Works
+
+<Accordion title="MODE_TEXT: Between Tags">
+From o.mjs:74-90:
+
+```javascript
+case MODE_TEXT:
+  if (s[0] === '<') {
+    if (s[1] === '/') {
+      // Found "</" - closing tag
+      mode = MODE_CLOSE_TAG;
+    } else {
+      // Found "<" - opening tag
+      [s, val] = readToken(s, 1, /^(\w+)/, fields[i]);
+      stack.push(h(val, {}));  // Push new node to stack
+      mode = MODE_OPEN_TAG;
+    }
+  } else {
+    // Raw text - add to current node's children
+    [s, val] = readToken(s, 0, /^([^<]+)/, '');
+    stack[stack.length - 1].c.push(val);
+  }
+  break;
+```
+
+In text mode, the parser looks for `<` to start a tag, or treats everything else as text content.
+</Accordion>
+
+<Accordion title="MODE_OPEN_TAG: Reading Attributes">
+From o.mjs:92-111:
+
+```javascript
+case MODE_OPEN_TAG:
+  if (s[0] === '/' && s[1] === '>') {
+    // Self-closing tag "/>" - pop from stack and add to parent
+    stack[stack.length - 2].c.push(stack.pop());
+    mode = MODE_TEXT;
+  } else if (s[0] === '>') {
+    // Just ">" - tag continues, may have children
+    mode = MODE_TEXT;
+  } else {
+    // Read attribute: key="value" or key=${placeholder}
+    [s, val] = readToken(s, 0, /^([\w-]+)=/, '');
+    let propName = val;
+    [s, val] = readToken(s, 0, /^"([^"]*)"/, fields[i]);
+    stack[stack.length - 1].p[propName] = val;
+  }
+  break;
+```
+
+In open tag mode, the parser reads attribute key-value pairs and adds them to the current node's properties object.
+</Accordion>
+
+<Accordion title="MODE_CLOSE_TAG: Closing Tags">
+From o.mjs:112-120:
+
+```javascript
+case MODE_CLOSE_TAG:
+  // Only look for ">"
+  console.assert(s[0] === '>');
+  stack[stack.length - 2].c.push(stack.pop()); // Pop and add to parent
+  s = s.substring(1);
+  mode = MODE_TEXT;
+  break;
+```
+
+Closing tags simply pop the current node from the stack and add it to its parent's children.
+</Accordion>
+
+### Stack-Based Parsing
+
+The parser uses a stack to handle nested tags (o.mjs:52):
+
+```javascript
+const stack = [h()];  // Start with fake top node
+```
+
+- Opening tags push new `h()` nodes onto the stack
+- Closing tags (or self-closing tags) pop from stack and add to parent
+- The final result is `stack[0].c[0]` - the first child of the fake root
+
+### Template Placeholders
+
+Placeholders (the `${...}` expressions) are handled by the `readToken` function (o.mjs:61-68):
+
+```javascript
+const readToken = (s, i, regexp, field) => {
+  s = s.substring(i);
+  if (!s) {
+    return [s, field];  // Empty string - return the placeholder value
+  }
+  const m = s.match(regexp);
+  return [s.substring(m[0].length), m[1]];
+};
+```
+
+When the string portion is empty (we've hit a placeholder), `readToken` returns the corresponding `field` value from the template arguments.
+
+## useEffect Execution
+
+After rendering completes, O! executes all `useEffect` callbacks (o.mjs:302-306):
+
+```javascript
+Object.values(dom.h).map(componentHooks =>
+  componentHooks.map(h => h.cb && ((h.cleanup = h.cb()), (h.cb = 0)))
+);
+```
+
+For unmounted components, cleanup functions are called (o.mjs:312-314):
+
+```javascript
+Object.keys(hs)
+  .filter(k => !dom.h[k])
+  .map(k => hs[k].map(h => h.cleanup && h.cleanup()));
+```
+
+This ensures side effects run after the DOM is updated and cleanup happens when components unmount.
+
+## Summary
+
+O!'s internals are deliberately simple:
+- **Hooks**: Stored in arrays on DOM nodes, accessed by key and index
+- **Diffing**: Position-based comparison with create/update/remove operations
+- **forceUpdate**: Re-runs render with the same arguments
+- **Parser**: State machine that builds a stack of virtual nodes from HTML-like templates
+
+The entire implementation is under 320 lines of code, making it a great learning resource for understanding React-like libraries.

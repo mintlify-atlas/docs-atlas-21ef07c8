@@ -1,0 +1,133 @@
+---
+title: "render()"
+description: "Render virtual nodes into the DOM"
+---
+
+Render a virtual node (or array of virtual nodes) into a DOM element. This function uses a diffing algorithm to efficiently update only the parts of the DOM that have changed.
+
+## Signature
+
+```javascript
+export const render = (vlist, dom, ns) => { /* ... */ }
+```
+
+**Source**: o.mjs:251
+
+## Parameters
+
+<ParamField path="vnode" type="VNode | VNode[]" required>
+  The virtual node(s) to render. Can be a single VNode or an array of VNodes.
+</ParamField>
+
+<ParamField path="dom" type="Element" required>
+  The DOM element to render into. This element becomes the container for the rendered virtual nodes.
+</ParamField>
+
+<ParamField path="ns" type="string">
+  Namespace URI for SVG nodes. Use `"http://www.w3.org/2000/svg"` when rendering SVG content.
+</ParamField>
+
+## Returns
+
+void
+
+## Behavior
+
+The `render()` function performs efficient DOM updates through:
+
+1. **Diffing**: Compares the new virtual node tree with the existing DOM
+2. **Patching**: Updates only the changed elements and properties
+3. **Component Rendering**: Evaluates functional components and manages their hooks
+4. **Effect Execution**: Runs `useEffect` callbacks after rendering completes
+5. **Cleanup**: Calls cleanup functions for removed components
+
+## Examples
+
+### Basic Rendering
+
+```javascript
+import { x, render } from './o.mjs';
+
+const app = x`<div><h1>Hello World</h1></div>`;
+
+render(app, document.body);
+```
+
+### Rendering a Component
+
+```javascript
+import { x, render } from './o.mjs';
+
+const MyComponent = ({ name }) => x`
+  <div className="greeting">
+    <h1>Hello, ${name}!</h1>
+  </div>
+`;
+
+render(x`<${MyComponent} name="Alice" />`, document.body);
+```
+
+### Re-rendering on State Change
+
+```javascript
+import { x, render, useState } from './o.mjs';
+
+const Counter = () => {
+  const [count, setCount] = useState(0);
+  
+  return x`
+    <div>
+      <p>Count: ${count}</p>
+      <button onclick=${() => setCount(count + 1)}>
+        Increment
+      </button>
+    </div>
+  `;
+};
+
+const app = x`<${Counter} />`;
+const container = document.getElementById('app');
+
+render(app, container);
+```
+
+### Rendering SVG
+
+```javascript
+import { x, render } from './o.mjs';
+
+const svgContent = x`
+  <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+    <circle cx="50" cy="50" r="40" fill="blue" />
+  </svg>
+`;
+
+render(svgContent, document.body);
+```
+
+### Multiple Root Nodes
+
+```javascript
+import { x, render } from './o.mjs';
+
+const Header = () => x`<header>Header</header>`;
+const Main = () => x`<main>Content</main>`;
+const Footer = () => x`<footer>Footer</footer>`;
+
+// Render multiple components as siblings
+render(
+  [
+    x`<${Header} />`,
+    x`<${Main} />`,
+    x`<${Footer} />`
+  ],
+  document.body
+);
+```
+
+## Performance Notes
+
+- The render function reuses existing DOM nodes when possible
+- Only changed properties are updated on existing elements
+- Removed nodes are properly cleaned up, including their effect cleanup callbacks
+- Functional components are memoized using implicit or explicit keys for efficient re-rendering

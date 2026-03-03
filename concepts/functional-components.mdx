@@ -1,0 +1,299 @@
+---
+title: Functional Components
+description: Build reusable UI components with simple JavaScript functions
+---
+
+## What are Functional Components?
+
+Functional components are JavaScript functions that take properties (props) and return virtual nodes. They're the building blocks for creating reusable, composable UI in O!.
+
+```javascript
+import { h } from 'o.mjs';
+
+const Greeting = (props) => {
+  return h('div', {}, `Hello, ${props.name}!`);
+};
+```
+
+## Component Signature
+
+Functional components in O! receive three arguments:
+
+```javascript
+const MyComponent = (props, children, forceUpdate) => {
+  // props: object with component properties
+  // children: array of child VNodes passed to the component
+  // forceUpdate: callback to trigger re-render
+  
+  return h('div', {}, 'Component UI');
+};
+```
+
+### Props
+
+Props are properties passed to your component from its parent:
+
+```javascript
+const UserCard = ({ name, age, role = 'User' }) => {
+  return h('div', { className: 'card' },
+    h('h2', {}, name),
+    h('p', {}, `Age: ${age}`),
+    h('p', {}, `Role: ${role}`)
+  );
+};
+
+// Usage
+render(
+  h(UserCard, { name: 'Alice', age: 30 }),
+  document.body
+);
+```
+
+<Tip>
+Use destructuring with default values for cleaner prop handling!
+</Tip>
+
+### Children
+
+The second argument contains child VNodes passed to your component:
+
+```javascript
+const Card = (props, children) => {
+  return h('div', { className: 'card' },
+    h('div', { className: 'card-body' }, ...children)
+  );
+};
+
+// Usage with children
+render(
+  h(Card, {},
+    h('h1', {}, 'Title'),
+    h('p', {}, 'Content')
+  ),
+  document.body
+);
+```
+
+### The forceUpdate Callback
+
+The third argument is a `forceUpdate` function that triggers a re-render of your component:
+
+```javascript
+const ClickCounter = (props, children, forceUpdate) => {
+  let clicks = 0;
+  
+  return h('button', {
+    onclick: () => {
+      clicks++;
+      forceUpdate(); // Re-render to show new count
+    }
+  }, `Clicks: ${clicks}`);
+};
+```
+
+<Note>
+In practice, you'll rarely use `forceUpdate` directly. Instead, use the `useState` or `useReducer` hooks which handle updates automatically.
+</Note>
+
+## Real Example: Counter Component
+
+Here's the complete counter example from `counter.html`:
+
+```javascript
+import { h, x, render, useState } from './o.mjs';
+
+const Counter = ({ name = 'Counter', initialValue = 0 }) => {
+  const [value, setValue] = useState(initialValue);
+  
+  return x`
+    <div className="counter">
+      <h1>${name}</h1>
+      <div>${value}</div>
+      <div className="row">
+        <button onclick=${() => setValue(value + 1)}>+</button>
+        <button onclick=${() => setValue(value - 1)}>-</button>
+      </div>
+    </div>
+  `;
+};
+
+// Render with initial props
+render(h(Counter, { initialValue: 10 }), document.body);
+```
+
+### Breaking Down the Counter
+
+1. **Props with defaults**: `{ name = 'Counter', initialValue = 0 }` provides fallback values
+2. **State hook**: `useState(initialValue)` creates reactive state that persists across renders
+3. **Event handlers**: `onclick=${() => setValue(value + 1)}` updates state and triggers re-render
+4. **Template syntax**: `` x` ` `` provides JSX-like HTML syntax (covered in [Template Syntax](/concepts/template-syntax))
+
+## Component Lifecycle
+
+Here's what happens when O! renders a functional component:
+
+```javascript
+// From o.mjs:264-271
+while (typeof v.e === 'function') {
+  const k = (v.p && v.p.k) || '' + v.e + (ids[v.e] = (ids[v.e] || 1) + 1);
+  hooks = hs[k] || [];
+  index = 0;
+  v = v.e(v.p, v.c, forceUpdate); // Call the component function
+  dom.h[k] = hooks; // Store hooks for next render
+}
+```
+
+1. **Execute**: O! calls your component function with props, children, and forceUpdate
+2. **Hooks**: Any hooks you call (useState, useEffect) are tracked and stored
+3. **Return**: Your component returns a VNode tree
+4. **Render**: O! recursively processes the returned VNodes and updates the DOM
+
+## Component Composition
+
+Components can render other components, creating a tree:
+
+```javascript
+const Button = ({ onClick, label }) => {
+  return h('button', { onclick: onClick }, label);
+};
+
+const ButtonGroup = () => {
+  const [count, setCount] = useState(0);
+  
+  return h('div', { className: 'button-group' },
+    h(Button, {
+      onClick: () => setCount(count + 1),
+      label: '+'
+    }),
+    h('span', {}, count),
+    h(Button, {
+      onClick: () => setCount(count - 1),
+      label: '-'
+    })
+  );
+};
+```
+
+## Returning VNodes
+
+Functional components must return a virtual node. You can create VNodes using:
+
+- **`h()` function**: `return h('div', {}, 'content')`
+- **Template syntax**: ``return x`<div>content</div>` ``
+- **Another component**: `return h(OtherComponent, { prop: 'value' })`
+
+```javascript
+// Using h()
+const WithH = () => {
+  return h('div', { className: 'container' },
+    h('h1', {}, 'Title')
+  );
+};
+
+// Using template syntax (equivalent)
+const WithTemplate = () => {
+  return x`
+    <div className="container">
+      <h1>Title</h1>
+    </div>
+  `;
+};
+```
+
+## State Management with Hooks
+
+Functional components become powerful when combined with hooks:
+
+### useState
+
+For simple state values:
+
+```javascript
+const Toggle = () => {
+  const [isOn, setIsOn] = useState(false);
+  
+  return h('button', {
+    onclick: () => setIsOn(!isOn)
+  }, isOn ? 'ON' : 'OFF');
+};
+```
+
+### useReducer
+
+For complex state logic:
+
+```javascript
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'increment': return { count: state.count + 1 };
+    case 'decrement': return { count: state.count - 1 };
+    case 'reset': return { count: 0 };
+    default: return state;
+  }
+};
+
+const Counter = () => {
+  const [state, dispatch] = useReducer(reducer, { count: 0 });
+  
+  return h('div', {},
+    h('div', {}, state.count),
+    h('button', { onclick: () => dispatch({ type: 'increment' }) }, '+'),
+    h('button', { onclick: () => dispatch({ type: 'decrement' }) }, '-'),
+    h('button', { onclick: () => dispatch({ type: 'reset' }) }, 'Reset')
+  );
+};
+```
+
+### useEffect
+
+For side effects:
+
+```javascript
+const Timer = () => {
+  const [seconds, setSeconds] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(s => s + 1);
+    }, 1000);
+    
+    // Cleanup function
+    return () => clearInterval(interval);
+  }, []); // Empty deps = run once on mount
+  
+  return h('div', {}, `Seconds: ${seconds}`);
+};
+```
+
+## Component Keys
+
+Use the special `k` property to help O! track component identity across renders:
+
+```javascript
+const TodoList = ({ todos }) => {
+  return h('ul', {},
+    ...todos.map(todo =>
+      h(TodoItem, { k: todo.id, text: todo.text })
+    )
+  );
+};
+```
+
+<Note>
+The `k` property is the only "artificial" property in O!. It helps maintain component state when the component's position in the DOM tree changes.
+</Note>
+
+## Best Practices
+
+1. **Keep components pure**: Same props should always return the same VNode structure
+2. **Use hooks at the top level**: Don't call hooks inside loops, conditions, or nested functions
+3. **Destructure props**: Makes it clear what props your component expects
+4. **Provide defaults**: Use default parameters for optional props
+5. **One responsibility**: Each component should do one thing well
+
+## Next Steps
+
+- Learn about [useState](/api/use-state) for managing component state
+- Explore [useEffect](/api/use-effect) for side effects
+- See [Template Syntax](/concepts/template-syntax) for easier component creation
+- Check out the [render()](/api/render) function to mount your components

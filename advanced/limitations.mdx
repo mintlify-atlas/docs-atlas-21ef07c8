@@ -1,0 +1,317 @@
+---
+title: "Limitations"
+description: "Known limitations and constraints of the O! library"
+---
+
+O! is a learning tool and experiment in minimalism. While functional, it has several important limitations you should be aware of.
+
+<Warning>
+**Not for Production**: O! is explicitly designed for learning and experimentation, not for serious projects. Use React, Preact, or other mature libraries for production applications.
+</Warning>
+
+## Diffing Algorithm
+
+O!'s diffing algorithm is **intentionally simple and inefficient**.
+
+### How It Falls Short
+
+From the README:
+> "Beware, diffing algorithm is very dumb and inefficient."
+
+The algorithm (o.mjs:282-285):
+- **Position-based only**: Matches virtual nodes to DOM nodes by array index
+- **No move operations**: Can only create, update, or remove nodes
+- **Recreates nodes unnecessarily**: If a node changes position, it's destroyed and recreated
+- **No key-based reconciliation**: The `k` property only tracks component hooks, not DOM element reuse
+
+### Performance Impact
+
+```javascript
+const items = ['A', 'B', 'C'];
+
+// If you add 'X' at the start:
+const items = ['X', 'A', 'B', 'C'];
+
+// O! will:
+// - Update node 0 from 'A' to 'X'
+// - Update node 1 from 'B' to 'A'
+// - Update node 2 from 'C' to 'B'
+// - Create new node 3 with 'C'
+
+// React would:
+// - Recognize nodes A, B, C by key
+// - Just insert X at the beginning
+```
+
+This makes O! inefficient for:
+- Large lists that change frequently
+- Reordering items
+- Complex dynamic UIs
+
+<Warning>
+Avoid using O! for lists with hundreds of items or frequent reordering. The diffing algorithm will cause unnecessary DOM operations.
+</Warning>
+
+## Hook Rules
+
+O!'s hooks follow the same rules as React, but violations may be harder to debug.
+
+### Must Call in Same Order
+
+Because hooks are stored in an array and accessed by index (see [How It Works](/advanced/how-it-works#hooks-storage)), you **must call hooks in the same order every render**.
+
+```javascript
+// ❌ Bad - conditional hooks
+const MyComponent = ({ isLoggedIn }) => {
+  if (isLoggedIn) {
+    const [user, setUser] = useState(null);  // Index: 0 (sometimes)
+  }
+  const [count, setCount] = useState(0);     // Index: 0 or 1 (inconsistent!)
+  // ...
+};
+
+// ✅ Good - hooks always called
+const MyComponent = ({ isLoggedIn }) => {
+  const [user, setUser] = useState(null);    // Index: 0 (always)
+  const [count, setCount] = useState(0);     // Index: 1 (always)
+  
+  if (!isLoggedIn) {
+    return x`<div>Please log in</div>`;
+  }
+  // ...
+};
+```
+
+### Can't Use in Loops
+
+```javascript
+// ❌ Bad - hooks in loop
+const MyComponent = ({ items }) => {
+  items.forEach(item => {
+    const [selected, setSelected] = useState(false); // Different count each render!
+  });
+};
+
+// ✅ Good - create child components
+const Item = ({ item }) => {
+  const [selected, setSelected] = useState(false);
+  return x`<div>${item.name}</div>`;
+};
+
+const MyComponent = ({ items }) => {
+  return x`<div>${items.map(item => h(Item, { item }))}</div>`;
+};
+```
+
+### No Error Boundaries
+
+Unlike React, O! has no error boundary mechanism. If a component throws an error, it will bubble up and potentially crash your entire app.
+
+## Template Syntax Restrictions
+
+The `x` template parser has several limitations due to its simplicity.
+
+### Double-Quoted Attributes Only
+
+Attribute values must be double-quoted unless they're placeholders:
+
+```javascript
+// ❌ Bad - single quotes
+x`<div className='foo'></div>`
+
+// ❌ Bad - no quotes
+x`<div className=foo></div>`
+
+// ✅ Good - double quotes
+x`<div className="foo"></div>`
+
+// ✅ Good - placeholder
+x`<div className=${myClass}></div>`
+```
+
+This is because the parser uses a simple regex: `/^"([^"]*)"` (o.mjs:108) to match quoted values.
+
+### One Top-Level Tag Only
+
+The template must have exactly one root element:
+
+```javascript
+// ❌ Bad - multiple roots
+x`
+  <div>First</div>
+  <div>Second</div>
+`
+
+// ✅ Good - single root
+x`
+  <div>
+    <div>First</div>
+    <div>Second</div>
+  </div>
+`
+
+// ✅ Good - use h() for multiple roots
+h('div', {}, 
+  h('div', {}, 'First'),
+  h('div', {}, 'Second')
+)
+```
+
+This limitation comes from the parser returning `stack[0].c[0]` - the first child of the fake root node (o.mjs:127).
+
+### Limited Placeholder Positions
+
+Placeholders can only appear in three places:
+
+1. **Tag names**: `` x`<${Component} />` ``
+2. **Attribute values**: `` x`<div className=${myClass} />` ``
+3. **Text content**: `` x`<div>${text}</div>` ``
+
+You cannot use placeholders for:
+
+```javascript
+// ❌ Bad - placeholder attribute name
+x`<div ${attrName}="value"></div>`
+
+// ❌ Bad - placeholder in quotes
+x`<div className="${myClass}"></div>`
+
+// ✅ Good - remove quotes for placeholder
+x`<div className=${myClass}></div>`
+```
+
+### No JSX Features
+
+Unlike JSX, the `x` template syntax doesn't support:
+- Spread attributes: `<div {...props}>`
+- Boolean attributes: `<input disabled />` (must use `disabled="true"`)
+- Fragments: `<>...</>`
+- Comments: `{/* comment */}`
+- Multiline attribute values
+- Self-closing HTML tags like `<br>` (must use `<br />`)
+
+## Missing React Features
+
+O! implements only a tiny subset of React's functionality.
+
+### No Additional Hooks
+
+O! only provides:
+- `useState`
+- `useReducer`  
+- `useEffect`
+
+Missing hooks:
+- `useContext` - No context API
+- `useRef` - No refs
+- `useMemo` / `useCallback` - No memoization
+- `useLayoutEffect` - Only `useEffect`
+- Custom hooks (you can write them, but limited by available hooks)
+
+### No Class Components
+
+O! only supports functional components:
+
+```javascript
+// ❌ Not supported
+class MyComponent extends Component {
+  render() {
+    return x`<div>Hello</div>`;
+  }
+}
+
+// ✅ Only functional components
+const MyComponent = () => {
+  return x`<div>Hello</div>`;
+};
+```
+
+### No Synthetic Events
+
+Event handlers receive native browser events, not React's synthetic events:
+
+```javascript
+const MyComponent = () => {
+  const handleClick = (e) => {
+    // e is a native MouseEvent, not a SyntheticEvent
+    e.stopPropagation(); // Native method
+  };
+  return x`<button onclick=${handleClick}>Click</button>`;
+};
+```
+
+This means:
+- No event pooling
+- No automatic event normalization across browsers
+- Case-sensitive event names (`onclick`, not `onClick`)
+
+### No Portals
+
+You cannot render components into different DOM trees.
+
+### No Suspense or Lazy Loading
+
+No built-in support for code splitting or lazy component loading.
+
+### No DevTools
+
+No browser extension for debugging components, inspecting state, or profiling.
+
+### No Server-Side Rendering
+
+O! can only render in the browser. No `renderToString` or SSR support.
+
+## Property Handling Quirks
+
+O! sets properties directly on DOM nodes rather than using attributes (except for SVG):
+
+```javascript
+// From o.mjs:288-296
+if (nsURI) {
+  node.setAttribute(propName, v.p[propName]);
+} else {
+  node[propName] = v.p[propName];
+}
+```
+
+This means:
+- Use `className` not `class`
+- Use `htmlFor` not `for`
+- `style` must be a string, not an object: `style="color: red;"` not `style={{ color: 'red' }}`
+- Some HTML attributes may not work as expected
+
+### Event Handlers Are Lowercase
+
+```javascript
+// ❌ Wrong - React style
+x`<button onClick=${handler}>Click</button>`
+
+// ✅ Correct - lowercase
+x`<button onclick=${handler}>Click</button>`
+```
+
+## When to Use O!
+
+Given these limitations, O! is best suited for:
+
+✅ **Learning**: Understanding how React-like libraries work  
+✅ **Prototyping**: Quick experiments and demos  
+✅ **Tiny projects**: Small single-page apps with simple UIs  
+✅ **Teaching**: Explaining virtual DOM and hooks concepts
+
+❌ **Not for**:
+- Production applications
+- Large-scale projects
+- Apps requiring high performance
+- Projects with complex state management needs
+- Anything user-facing that requires reliability
+
+<Warning>
+Remember: O! is an exercise in minimalism and a learning tool. For real projects, use [React](https://react.dev/), [Preact](https://preactjs.com/), or other production-ready libraries.
+</Warning>
+
+## Next Steps
+
+- [Compare O! to React](/advanced/comparison) to understand the differences
+- Read the [author's blog post](https://zserge.com/posts/worst-react-ever/) about why O! was created
+- Check out [How It Works](/advanced/how-it-works) to understand the internals

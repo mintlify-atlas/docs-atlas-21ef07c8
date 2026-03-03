@@ -1,0 +1,257 @@
+---
+title: "useEffect()"
+description: "Handle side effects in functional components"
+---
+
+Provides a callback that may cause side effects for the current component. The callback is evaluated only when the dependency array changes, and is called after rendering is complete.
+
+## Signature
+
+```javascript
+export const useEffect = (cb, args = []) => {
+  const hook = getHook();
+  if (changed(hook.value, args)) {
+    hook.value = args;
+    hook.cb = cb;
+  }
+};
+```
+
+**Source**: o.mjs:229
+
+## Parameters
+
+<ParamField path="callback" type="() => void | (() => void)" required>
+  Callback function that executes side effects. Can optionally return a cleanup function that will be called before the component is removed from the DOM or before the effect runs again.
+  
+  **Return value**: Optional cleanup function
+</ParamField>
+
+<ParamField path="deps" type="Array">
+  Array of callback dependencies. The effect only runs when values in this array change between renders.
+  
+  - Empty array `[]`: Effect runs only once after initial render
+  - No array: Effect runs after every render
+  - Array with values: Effect runs when any value changes
+</ParamField>
+
+## Returns
+
+void (or optionally a cleanup function from the callback)
+
+## Timing
+
+- The callback is called **after** rendering is complete
+- This allows querying child DOM nodes safely
+- Cleanup functions run **before** component removal or before the effect runs again
+
+## Examples
+
+### Window Resize Listener
+
+```javascript
+import { x, useState, useEffect } from './o.mjs';
+
+const WindowWidth = () => {
+  const [width, setWidth] = useState(window.innerWidth);
+  
+  function onResize() { 
+    setWidth(window.innerWidth); 
+  }
+  
+  useEffect(() => {
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  
+  return x`<div>Window width: ${width}</div>`;
+};
+```
+
+### Document Title Update
+
+```javascript
+import { x, useState, useEffect } from './o.mjs';
+
+const PageTitle = ({ title }) => {
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+  
+  return x`<h1>${title}</h1>`;
+};
+```
+
+### API Data Fetching
+
+```javascript
+import { x, useState, useEffect } from './o.mjs';
+
+const UserProfile = ({ userId }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/users/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        setUser(data);
+        setLoading(false);
+      });
+  }, [userId]);
+  
+  if (loading) return x`<div>Loading...</div>`;
+  if (!user) return x`<div>User not found</div>`;
+  
+  return x`
+    <div>
+      <h1>${user.name}</h1>
+      <p>${user.email}</p>
+    </div>
+  `;
+};
+```
+
+### Timer/Interval
+
+```javascript
+import { x, useState, useEffect } from './o.mjs';
+
+const Timer = () => {
+  const [seconds, setSeconds] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(s => s + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return x`<div>Seconds elapsed: ${seconds}</div>`;
+};
+```
+
+### DOM Manipulation
+
+```javascript
+import { x, useEffect } from './o.mjs';
+
+const AutoFocus = () => {
+  let inputRef;
+  
+  useEffect(() => {
+    // Access DOM after render
+    if (inputRef) {
+      inputRef.focus();
+    }
+  }, []);
+  
+  return x`
+    <input 
+      type="text"
+      ref=${(el) => inputRef = el}
+      placeholder="Auto-focused input"
+    />
+  `;
+};
+```
+
+### Multiple Effects
+
+```javascript
+import { x, useState, useEffect } from './o.mjs';
+
+const MultiEffect = ({ userId }) => {
+  const [user, setUser] = useState(null);
+  const [online, setOnline] = useState(false);
+  
+  // Effect 1: Fetch user data
+  useEffect(() => {
+    fetch(`/api/users/${userId}`)
+      .then(res => res.json())
+      .then(setUser);
+  }, [userId]);
+  
+  // Effect 2: Subscribe to online status
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  
+  return x`
+    <div>
+      <p>User: ${user?.name || 'Loading...'}</p>
+      <p>Status: ${online ? 'Online' : 'Offline'}</p>
+    </div>
+  `;
+};
+```
+
+### Local Storage Sync
+
+```javascript
+import { x, useState, useEffect } from './o.mjs';
+
+const PersistentCounter = () => {
+  const [count, setCount] = useState(() => {
+    const saved = localStorage.getItem('count');
+    return saved ? parseInt(saved) : 0;
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('count', count);
+  }, [count]);
+  
+  return x`
+    <div>
+      <p>Count: ${count}</p>
+      <button onclick=${() => setCount(count + 1)}>Increment</button>
+    </div>
+  `;
+};
+```
+
+## Dependency Array Patterns
+
+### Run Once (Component Mount)
+
+```javascript
+useEffect(() => {
+  console.log('Component mounted');
+  return () => console.log('Component unmounted');
+}, []); // Empty array = run once
+```
+
+### Run on Every Render
+
+```javascript
+useEffect(() => {
+  console.log('Component rendered');
+}); // No array = run every time
+```
+
+### Run When Specific Values Change
+
+```javascript
+useEffect(() => {
+  console.log('userId or status changed');
+}, [userId, status]); // Run when userId or status changes
+```
+
+## Important Notes
+
+- Effects run **after** the DOM has been updated
+- Cleanup functions run before re-running the effect or on component unmount
+- Always include all values used inside the effect in the dependency array
+- Don't perform state updates directly in the effect body without conditions (infinite loop risk)
+- Effects are useful for: subscriptions, timers, API calls, DOM manipulation, logging

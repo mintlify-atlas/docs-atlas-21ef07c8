@@ -1,0 +1,163 @@
+---
+title: "Todo List Example"
+description: "Build a todo list with array state, dynamic rendering, and keys"
+---
+
+# Todo List Example
+
+This example shows how to manage array state, handle user input, and render dynamic lists with proper keys.
+
+## Complete Todo List Component
+
+```javascript
+import { h, x, render, useState } from './o.mjs';
+
+const TodoList = () => {
+  const [todos, setTodos] = useState([
+    { id: 1, text: 'Learn O! library', completed: false },
+    { id: 2, text: 'Build an app', completed: false }
+  ]);
+  const [input, setInput] = useState('');
+  const [nextId, setNextId] = useState(3);
+
+  const addTodo = () => {
+    if (input.trim()) {
+      setTodos([...todos, { id: nextId, text: input, completed: false }]);
+      setInput('');
+      setNextId(nextId + 1);
+    }
+  };
+
+  const removeTodo = (id) => {
+    setTodos(todos.filter(todo => todo.id !== id));
+  };
+
+  const toggleTodo = (id) => {
+    setTodos(todos.map(todo =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      addTodo();
+    }
+  };
+
+  return x`
+    <div className="todo-app">
+      <h1>My Todo List</h1>
+      <div className="input-container">
+        <input
+          type="text"
+          value=${input}
+          oninput=${(e) => setInput(e.target.value)}
+          onkeypress=${handleKeyPress}
+          placeholder="Add a new todo..."
+        />
+        <button onclick=${addTodo}>Add</button>
+      </div>
+      <ul className="todo-list">
+        ${todos.map(todo => h('li', { k: todo.id, className: todo.completed ? 'completed' : '' }, 
+          h('input', { 
+            type: 'checkbox', 
+            checked: todo.completed,
+            onchange: () => toggleTodo(todo.id)
+          }),
+          h('span', {}, todo.text),
+          h('button', { onclick: () => removeTodo(todo.id) }, 'Delete')
+        ))}
+      </ul>
+      <div className="stats">
+        ${todos.filter(t => !t.completed).length} items left
+      </div>
+    </div>
+  `;
+};
+
+render(h(TodoList, {}), document.body);
+```
+
+## Key Concepts
+
+### Array State Management
+
+Manage arrays using `useState` and array methods:
+
+```javascript
+const [todos, setTodos] = useState([...]);
+
+// Adding items
+setTodos([...todos, newItem]);
+
+// Removing items
+setTodos(todos.filter(todo => todo.id !== id));
+
+// Updating items
+setTodos(todos.map(todo =>
+  todo.id === id ? { ...todo, completed: !todo.completed } : todo
+));
+```
+
+**Important:** Always create new arrays (don't mutate) to trigger re-renders.
+
+### Form Input Handling
+
+Control form inputs by binding them to state:
+
+```javascript
+const [input, setInput] = useState('');
+
+<input
+  type="text"
+  value=${input}
+  oninput=${(e) => setInput(e.target.value)}
+/>
+```
+
+- Use `value` to bind the input to state
+- Use `oninput` to update state on every keystroke
+- Access the input value via `e.target.value`
+
+### Dynamic List Rendering with Keys
+
+When rendering lists, use the `k` property for stable component identity:
+
+```javascript
+todos.map(todo => h('li', { k: todo.id }, ...))
+```
+
+**Why use keys?**
+- The `k` property keeps component state when list order changes
+- Without keys, O! generates implicit keys that break when items move
+- Use unique, stable identifiers (like IDs) for keys
+- Never use array indices as keys if the list can reorder
+
+### Mixing `x` Templates and `h` Calls
+
+You can use `h()` inside template placeholders for dynamic content:
+
+```javascript
+return x`
+  <ul>
+    ${todos.map(todo => h('li', { k: todo.id }, todo.text))}
+  </ul>
+`;
+```
+
+This is useful when:
+- Rendering dynamic lists
+- Passing complex props that need JavaScript expressions
+- You need precise control over keys and properties
+
+### Multiple State Variables
+
+You can call `useState` multiple times in one component:
+
+```javascript
+const [todos, setTodos] = useState([]);
+const [input, setInput] = useState('');
+const [nextId, setNextId] = useState(1);
+```
+
+Each call creates an independent state variable. The order matters - O! tracks hooks by their call order.

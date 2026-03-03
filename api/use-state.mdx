@@ -1,0 +1,164 @@
+---
+title: "useState()"
+description: "Add local state to functional components"
+---
+
+Provides a local component state that persists between component updates. This is the most common hook for managing simple component state.
+
+## Signature
+
+```javascript
+export const useState = initialState => useReducer((_, v) => v, initialState);
+```
+
+**Source**: o.mjs:201
+
+## Parameters
+
+<ParamField path="initialState" type="*" required>
+  Initial state value. Can be any JavaScript value: number, string, object, array, etc.
+</ParamField>
+
+## Returns
+
+<ResponseField name="[state, setState]" type="Array">
+  Returns a tuple (array) with exactly two elements:
+  
+  <ResponseField name="state" type="*">
+    The current state value
+  </ResponseField>
+  
+  <ResponseField name="setState" type="(newState) => void">
+    Function to update the state. Calling this function triggers a re-render of the component.
+  </ResponseField>
+</ResponseField>
+
+## Examples
+
+### Counter Example
+
+```javascript
+import { x, useState } from './o.mjs';
+
+const Counter = () => {
+  const [count, setCount] = useState(0);
+  
+  return x`
+    <div>
+      <p>Count: ${count}</p>
+      <button onclick=${() => setCount(count + 1)}>Increment</button>
+    </div>
+  `;
+};
+```
+
+### String State
+
+```javascript
+import { x, useState } from './o.mjs';
+
+const NameInput = () => {
+  const [name, setName] = useState('');
+  
+  return x`
+    <div>
+      <input 
+        type="text" 
+        value=${name}
+        oninput=${(e) => setName(e.target.value)}
+      />
+      <p>Hello, ${name}!</p>
+    </div>
+  `;
+};
+```
+
+### Object State
+
+```javascript
+import { x, useState } from './o.mjs';
+
+const UserForm = () => {
+  const [user, setUser] = useState({ name: '', email: '' });
+  
+  const updateName = (name) => setUser({ ...user, name });
+  const updateEmail = (email) => setUser({ ...user, email });
+  
+  return x`
+    <div>
+      <input 
+        type="text" 
+        value=${user.name}
+        oninput=${(e) => updateName(e.target.value)}
+        placeholder="Name"
+      />
+      <input 
+        type="email" 
+        value=${user.email}
+        oninput=${(e) => updateEmail(e.target.value)}
+        placeholder="Email"
+      />
+      <p>Name: ${user.name}, Email: ${user.email}</p>
+    </div>
+  `;
+};
+```
+
+### Array State
+
+```javascript
+import { x, useState } from './o.mjs';
+
+const TodoList = () => {
+  const [todos, setTodos] = useState([]);
+  const [input, setInput] = useState('');
+  
+  const addTodo = () => {
+    if (input.trim()) {
+      setTodos([...todos, input]);
+      setInput('');
+    }
+  };
+  
+  return x`
+    <div>
+      <input 
+        type="text"
+        value=${input}
+        oninput=${(e) => setInput(e.target.value)}
+      />
+      <button onclick=${addTodo}>Add</button>
+      <ul>
+        ${todos.map(todo => x`<li>${todo}</li>`)}
+      </ul>
+    </div>
+  `;
+};
+```
+
+### Toggle State
+
+```javascript
+import { x, useState } from './o.mjs';
+
+const Toggle = () => {
+  const [isOn, setIsOn] = useState(false);
+  
+  return x`
+    <div>
+      <button onclick=${() => setIsOn(!isOn)}>
+        ${isOn ? 'ON' : 'OFF'}
+      </button>
+      ${isOn && x`<p>The toggle is on!</p>`}
+    </div>
+  `;
+};
+```
+
+## Important Notes
+
+- State updates trigger a re-render of the component
+- The state persists across re-renders
+- When updating object or array state, create a new object/array (don't mutate)
+- `useState` is implemented using `useReducer` internally
+- Multiple `useState` calls in the same component are tracked independently

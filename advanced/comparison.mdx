@@ -1,0 +1,429 @@
+---
+title: "Comparison with React"
+description: "How O! compares to React - similarities, differences, and when to use each"
+---
+
+O! was created as a learning tool to explain how React-like libraries work. Understanding the similarities and differences helps you appreciate both libraries.
+
+## What's Similar
+
+O! deliberately mimics React's core concepts and API.
+
+### Functional Components
+
+Both use functions that return virtual DOM:
+
+```javascript
+// O!
+const Greeting = ({ name }) => {
+  return x`<div>Hello, ${name}!</div>`;
+};
+
+// React
+const Greeting = ({ name }) => {
+  return <div>Hello, {name}!</div>;
+};
+```
+
+### Hooks API
+
+O! implements three core React hooks with nearly identical APIs:
+
+```javascript
+// useState - identical in both
+const [count, setCount] = useState(0);
+
+// useEffect - identical in both
+useEffect(() => {
+  console.log('Mounted');
+  return () => console.log('Cleanup');
+}, []);
+
+// useReducer - identical in both
+const [state, dispatch] = useReducer(reducer, initialState);
+```
+
+The hooks follow the same rules:
+- Must be called at the top level
+- Must be called in the same order every render
+- Cannot be called conditionally or in loops
+
+### Virtual DOM
+
+Both use a virtual DOM layer:
+
+```javascript
+// O! - h() function creates virtual nodes
+h('div', { className: 'foo' }, h('p', {}, 'Hello'));
+
+// React - createElement does the same
+React.createElement('div', { className: 'foo' }, 
+  React.createElement('p', {}, 'Hello')
+);
+```
+
+Both compare virtual trees to determine minimal DOM updates.
+
+### Component Props
+
+Both pass data to components via props:
+
+```javascript
+// O!
+const User = ({ name, age }) => x`<div>${name}, ${age}</div>`;
+render(h(User, { name: 'Alice', age: 30 }), document.body);
+
+// React
+const User = ({ name, age }) => <div>{name}, {age}</div>;
+ReactDOM.render(<User name="Alice" age={30} />, document.body);
+```
+
+## What's Different
+
+Despite the similarities, O! is much simpler and more limited.
+
+### Size
+
+<CardGroup cols={2}>
+  <Card title="O!" icon="feather">
+    **~1KB** minified + gzipped
+    
+    Under 320 lines of code
+  </Card>
+  <Card title="React" icon="react">
+    **~40KB** (React + ReactDOM) minified + gzipped
+    
+    Hundreds of thousands of lines of code
+  </Card>
+</CardGroup>
+
+O!'s tiny size comes from:
+- Simple diffing algorithm
+- Only 3 hooks
+- No error boundaries, context, refs, etc.
+- Minimal optimizations
+
+### Template Syntax
+
+O! uses tagged templates instead of JSX:
+
+```javascript
+// O! - tagged template literal (x``)
+const element = x`
+  <div className="container">
+    <h1>${title}</h1>
+    <button onclick=${handleClick}>Click</button>
+  </div>
+`;
+
+// React - JSX (requires transpilation)
+const element = (
+  <div className="container">
+    <h1>{title}</h1>
+    <button onClick={handleClick}>Click</button>
+  </div>
+);
+```
+
+**Key differences**:
+
+| Feature | O! | React |
+|---------|----|---------|
+| Syntax | `` x`...` `` tagged template | JSX requires Babel/TypeScript |
+| Transpiler | None needed | Required |
+| Attribute quotes | Must use double quotes | Optional |
+| Event names | Lowercase (`onclick`) | camelCase (`onClick`) |
+| Boolean attrs | `disabled="true"` | `disabled` or `disabled={true}` |
+
+### Diffing Algorithm
+
+The reconciliation approach is fundamentally different:
+
+**O! (simple position-based)**:
+```javascript
+// From o.mjs:282-285
+let node = dom.childNodes[i];
+if (!node || (v.e ? node.e !== v.e : node.data !== v)) {
+  node = dom.insertBefore(createNode(), node);
+}
+```
+
+- Compares nodes by position (array index)
+- Creates new nodes if tag/text doesn't match
+- No move operations
+- Very inefficient for list reordering
+
+**React (sophisticated key-based)**:
+- Uses keys to track elements across renders
+- Can detect moves, reorders, and insertions efficiently
+- Batches DOM updates
+- Highly optimized for performance
+
+```javascript
+// React can efficiently handle this:
+const items = ['A', 'B', 'C'];
+const reordered = ['C', 'A', 'B'];
+// React: Recognizes items by key and just moves them
+// O!: Updates each item in place (very inefficient)
+```
+
+### API Completeness
+
+O! implements only a tiny subset of React's features:
+
+<AccordionGroup>
+  <Accordion title="Hooks - O! has 3 of 15+">
+    **O! provides**:
+    - `useState`
+    - `useReducer`
+    - `useEffect`
+
+    **React also has**:
+    - `useContext`
+    - `useRef`
+    - `useMemo`
+    - `useCallback`
+    - `useLayoutEffect`
+    - `useImperativeHandle`
+    - `useDebugValue`
+    - `useDeferredValue`
+    - `useTransition`
+    - `useId`
+    - `useSyncExternalStore`
+    - And more...
+  </Accordion>
+
+  <Accordion title="Component Types - O! only supports functions">
+    **O! supports**:
+    - Functional components
+
+    **React also supports**:
+    - Class components
+    - `React.memo()` for memoization
+    - `React.forwardRef()`
+    - `React.lazy()` for code splitting
+  </Accordion>
+
+  <Accordion title="Advanced Features - O! has none">
+    **React exclusive features**:
+    - Context API for state management
+    - Portals for rendering outside hierarchy
+    - Suspense for async rendering
+    - Error boundaries
+    - Refs for DOM access
+    - Fragments (`<>...</>`)
+    - Strict mode
+    - Profiler API
+    - Server-side rendering
+    - Concurrent rendering
+    - Automatic batching
+  </Accordion>
+</AccordionGroup>
+
+### Events
+
+O! uses native browser events:
+
+```javascript
+// O! - native events
+x`<button onclick=${(e) => {
+  console.log(e); // Native MouseEvent
+  e.stopPropagation(); // Native method
+}}>Click</button>`
+
+// React - synthetic events
+<button onClick={(e) => {
+  console.log(e); // SyntheticEvent (wrapped)
+  e.stopPropagation(); // Normalized across browsers
+}}>Click</button>
+```
+
+React's synthetic events provide:
+- Cross-browser consistency
+- Event pooling (optimization)
+- Additional features
+
+O!'s native events are simpler but may behave differently across browsers.
+
+### Property Setting
+
+O! sets properties directly on DOM nodes:
+
+```javascript
+// From o.mjs:288-296
+if (nsURI) {
+  node.setAttribute(propName, v.p[propName]); // SVG only
+} else {
+  node[propName] = v.p[propName];  // Direct property assignment
+}
+```
+
+React has more sophisticated property handling:
+- Knows which props are attributes vs properties
+- Handles special cases (style objects, etc.)
+- Normalizes values across browsers
+
+### Developer Experience
+
+<CardGroup cols={2}>
+  <Card title="O!" icon="code">
+    - No DevTools
+    - No error messages
+    - No warnings for common mistakes
+    - Minimal documentation
+    - No TypeScript types
+    - No testing utilities
+  </Card>
+  <Card title="React" icon="react">
+    - React DevTools browser extension
+    - Helpful error messages
+    - Warnings in development mode
+    - Extensive documentation
+    - TypeScript support
+    - Testing libraries (React Testing Library)
+  </Card>
+</CardGroup>
+
+## What's Missing in O!
+
+Beyond the differences above, O! completely lacks:
+
+### State Management
+- No Context API
+- No Redux integration
+- Each component manages its own state in isolation
+
+### Ecosystem
+- No router (React Router)
+- No form libraries
+- No UI component libraries
+- No build tool integration beyond ES modules
+
+### Production Features
+- No server-side rendering (SSR)
+- No static site generation (SSG)
+- No code splitting
+- No lazy loading
+- No performance optimizations
+- No error recovery
+
+### TypeScript
+- No type definitions
+- No JSX type checking
+- No prop type validation
+
+## When to Use O! vs React
+
+Choose the right tool based on your needs:
+
+### Use O! For
+
+✅ **Learning**
+```javascript
+// Perfect for understanding React concepts
+// You can read the entire source in 30 minutes!
+```
+
+✅ **Teaching**
+```javascript
+// Explain virtual DOM, hooks, and rendering
+// Without the complexity of React's codebase
+```
+
+✅ **Tiny Experiments**
+```javascript
+// Quick demos, proof of concepts
+// No build step required
+```
+
+✅ **Personal Projects**
+```javascript
+// Small hobby projects where size matters
+// And you accept the limitations
+```
+
+### Use React For
+
+✅ **Production Applications**
+```javascript
+// Any user-facing application
+// Anything that needs to be reliable
+```
+
+✅ **Large Projects**
+```javascript
+// Multiple developers
+// Complex state management
+// Long-term maintenance
+```
+
+✅ **Performance-Critical Apps**
+```javascript
+// Large lists, frequent updates
+// Need efficient diffing and optimizations
+```
+
+✅ **Modern Features**
+```javascript
+// SSR, code splitting, lazy loading
+// Context, refs, advanced hooks
+```
+
+<Warning>
+**O! is not a React replacement**: It's a learning tool and thought experiment. The README explicitly states: "Never meant to be used in any of the serious projects."
+</Warning>
+
+## Performance Comparison
+
+While no formal benchmarks exist, the theoretical performance characteristics:
+
+| Scenario | O! | React |
+|----------|----|---------|
+| Initial render (small) | Similar | Similar |
+| Initial render (large) | Slower | Faster |
+| Simple updates | Similar | Faster |
+| List reordering | Much slower | Much faster |
+| Deep tree updates | Slower | Faster (batching, optimizations) |
+| Memory usage | Lower (simpler structures) | Higher (more features) |
+| Bundle size | Much smaller (~1KB) | Larger (~40KB) |
+
+For most real-world apps, React will be faster despite being larger.
+
+## Philosophy Comparison
+
+The libraries have different design philosophies:
+
+**O! Philosophy**:
+> "It's really an exercise in minimalism, and nothing more."
+- Smallest possible implementation
+- Educational value over production readiness
+- Simple code that's easy to understand
+- No abstractions beyond the core concepts
+
+**React Philosophy**:
+- Production-ready and battle-tested
+- Rich ecosystem and tooling
+- Performance optimizations
+- Developer experience
+- Backwards compatibility
+- Extensive documentation and support
+
+## Learn More
+
+To understand why O! was created and how it works:
+
+<Card title="The Worst React Ever" icon="link" href="https://zserge.com/posts/worst-react-ever/">
+  Read the author's blog post about creating O! and what it teaches about React-like libraries.
+</Card>
+
+## Next Steps
+
+- [How It Works](/advanced/how-it-works) - Deep dive into O!'s internals
+- [Limitations](/advanced/limitations) - Understand what O! cannot do
+- [Quickstart](/quickstart) - Start building with O!
+
+---
+
+<Note>
+O! proves that the core concepts of React (virtual DOM, hooks, functional components) can be implemented in under 320 lines of code. It's a testament to React's elegant design, even if O!'s implementation sacrifices everything else for simplicity.
+</Note>

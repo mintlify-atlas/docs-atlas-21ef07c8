@@ -1,0 +1,204 @@
+---
+title: "useReducer()"
+description: "Redux-like state management for functional components"
+---
+
+Provides a Redux-like state management pattern for functional components. Useful when state logic is complex or when multiple state values depend on each other.
+
+## Signature
+
+```javascript
+export const useReducer = (reducer, initialState) => {
+  const hook = getHook(initialState);
+  const update = forceUpdate;
+  const dispatch = action => {
+    hook.value = reducer(hook.value, action);
+    update();
+  };
+  return [hook.value, dispatch];
+};
+```
+
+**Source**: o.mjs:173
+
+## Parameters
+
+<ParamField path="reducer" type="(state, action) => newState" required>
+  A function that creates a new state based on the current state and action.
+  
+  **Signature**: `(state, action) => newState`
+  
+  - `state`: The current state value
+  - `action`: The action object or value dispatched
+  - Returns: The new state
+</ParamField>
+
+<ParamField path="initialState" type="*">
+  Initial state value. Can be any JavaScript value.
+</ParamField>
+
+## Returns
+
+<ResponseField name="[state, dispatch]" type="Array">
+  Returns a tuple (array) with exactly two elements:
+  
+  <ResponseField name="state" type="*">
+    The current state value
+  </ResponseField>
+  
+  <ResponseField name="dispatch" type="(action) => void">
+    Action dispatcher function. Calling this with an action will invoke the reducer and trigger a re-render.
+  </ResponseField>
+</ResponseField>
+
+## Examples
+
+### Counter with Actions
+
+```javascript
+import { x, useReducer } from './o.mjs';
+
+const reducer = (state, action) => {
+  switch (action) {
+    case 'incr': return state + 1;
+    case 'decr': return state - 1;
+    default: return state;
+  }
+};
+
+const Counter = () => {
+  const [count, dispatch] = useReducer(reducer, 0);
+  
+  return x`
+    <div>
+      <p>Count: ${count}</p>
+      <button onclick=${() => dispatch('incr')}>Increment</button>
+      <button onclick=${() => dispatch('decr')}>Decrement</button>
+    </div>
+  `;
+};
+```
+
+### Complex State with Action Objects
+
+```javascript
+import { x, useReducer } from './o.mjs';
+
+const initialState = {
+  count: 0,
+  step: 1
+};
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'increment':
+      return { ...state, count: state.count + state.step };
+    case 'decrement':
+      return { ...state, count: state.count - state.step };
+    case 'setStep':
+      return { ...state, step: action.value };
+    case 'reset':
+      return initialState;
+    default:
+      return state;
+  }
+};
+
+const StepCounter = () => {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  
+  return x`
+    <div>
+      <p>Count: ${state.count}</p>
+      <p>Step: ${state.step}</p>
+      <button onclick=${() => dispatch({ type: 'increment' })}>+</button>
+      <button onclick=${() => dispatch({ type: 'decrement' })}>-</button>
+      <input 
+        type="number"
+        value=${state.step}
+        oninput=${(e) => dispatch({ type: 'setStep', value: parseInt(e.target.value) })}
+      />
+      <button onclick=${() => dispatch({ type: 'reset' })}>Reset</button>
+    </div>
+  `;
+};
+```
+
+### Todo List with Reducer
+
+```javascript
+import { x, useReducer, useState } from './o.mjs';
+
+const todoReducer = (state, action) => {
+  switch (action.type) {
+    case 'add':
+      return [...state, { id: Date.now(), text: action.text, done: false }];
+    case 'toggle':
+      return state.map(todo =>
+        todo.id === action.id ? { ...todo, done: !todo.done } : todo
+      );
+    case 'remove':
+      return state.filter(todo => todo.id !== action.id);
+    default:
+      return state;
+  }
+};
+
+const TodoApp = () => {
+  const [todos, dispatch] = useReducer(todoReducer, []);
+  const [input, setInput] = useState('');
+  
+  const addTodo = () => {
+    if (input.trim()) {
+      dispatch({ type: 'add', text: input });
+      setInput('');
+    }
+  };
+  
+  return x`
+    <div>
+      <input 
+        type="text"
+        value=${input}
+        oninput=${(e) => setInput(e.target.value)}
+      />
+      <button onclick=${addTodo}>Add</button>
+      <ul>
+        ${todos.map(todo => x`
+          <li className=${todo.done ? 'done' : ''}>
+            <input 
+              type="checkbox"
+              checked=${todo.done}
+              onchange=${() => dispatch({ type: 'toggle', id: todo.id })}
+            />
+            ${todo.text}
+            <button onclick=${() => dispatch({ type: 'remove', id: todo.id })}>×</button>
+          </li>
+        `)}
+      </ul>
+    </div>
+  `;
+};
+```
+
+## When to Use useReducer vs useState
+
+Use `useReducer` when:
+
+- State logic is complex with multiple sub-values
+- Next state depends on previous state in non-trivial ways
+- You want to centralize state update logic
+- You're familiar with Redux patterns
+
+Use `useState` when:
+
+- State is a simple value (string, number, boolean)
+- State updates are straightforward
+- You don't need complex state transitions
+
+## Important Notes
+
+- The reducer function should be pure (no side effects)
+- Always return a new state object; don't mutate the existing state
+- Actions can be any value, but objects with a `type` property are conventional
+- `useState` is actually implemented using `useReducer` internally

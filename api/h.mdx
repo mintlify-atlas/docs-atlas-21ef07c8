@@ -1,0 +1,74 @@
+---
+title: "h()"
+description: "Create a virtual node (VNode) using the h() function"
+---
+
+Create a virtual node object. This is the core function for building virtual DOM trees in O!. Short, one-letter property names (`e`, `p`, `c`) are used to reduce minified JS code size.
+
+## Signature
+
+```javascript
+export const h = (e, p = {}, ...c) => ({ e, p, c });
+```
+
+**Source**: o.mjs:29
+
+## Parameters
+
+<ParamField path="e" type="string | function" required>
+  The node name (HTML tag name like `'div'`, `'span'`), or a functional component that constructs a virtual node.
+</ParamField>
+
+<ParamField path="p" type="object" default="{}">
+  The properties map of the virtual node. This includes attributes, event handlers, and other DOM properties.
+</ParamField>
+
+<ParamField path="c" type="...VNode">
+  Variadic list of child elements. Can be virtual nodes, strings, or numbers.
+</ParamField>
+
+## Returns
+
+<ResponseField name="VNode" type="object">
+  A virtual node object with the following structure:
+  
+  <ResponseField name="e" type="string | function">
+    Node name or functional component
+  </ResponseField>
+  
+  <ResponseField name="p" type="object">
+    Node properties (attributes)
+  </ResponseField>
+  
+  <ResponseField name="c" type="Array<VNode>">
+    Node children
+  </ResponseField>
+</ResponseField>
+
+## Example
+
+```javascript
+import { h } from './o.mjs';
+
+// Create a simple div with a heading
+const vnode = h('div', { className: 'foo' }, h('h1', {}, 'Hello!'));
+
+// With multiple children
+const list = h('ul', { className: 'menu' },
+  h('li', {}, 'Home'),
+  h('li', {}, 'About'),
+  h('li', {}, 'Contact')
+);
+
+// With event handlers
+const button = h('button', {
+  onclick: () => console.log('Clicked!'),
+  className: 'btn'
+}, 'Click me');
+```
+
+## Usage Notes
+
+- The `h()` function is typically used when you need programmatic control over VNode creation
+- For more declarative syntax, consider using the `x` template literal function
+- Properties are passed directly to the DOM element, so use `className` instead of `class`, `onclick` instead of `onClick`, etc.

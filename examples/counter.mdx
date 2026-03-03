@@ -1,0 +1,90 @@
+---
+title: "Counter Example"
+description: "Build a simple counter component with state and event handlers"
+---
+
+# Counter Example
+
+This example demonstrates the core concepts of O!: state management with `useState`, template syntax with `x`, and event handling.
+
+## Complete Counter Component
+
+```javascript
+import { h, x, render, useState } from './o.mjs';
+
+const Counter = ({ name = 'Counter', initialValue = 0 }) => {
+  const [value, setValue] = useState(initialValue);
+  return x`
+    <div className="counter">
+      <h1>${name}</h1>
+      <div>${value}</div>
+      <div className="row">
+        <button onclick=${() => setValue(value + 1)}>+</button>
+        <button onclick=${() => setValue(value - 1)}>-</button>
+      </div>
+    </div>
+  `;
+};
+
+render(h(Counter, { initialValue: 10 }), document.body);
+```
+
+## Key Concepts
+
+### State Management with `useState`
+
+The `useState` hook provides local component state that persists between updates:
+
+```javascript
+const [value, setValue] = useState(initialValue);
+```
+
+- `value` - The current state value
+- `setValue` - Function to update the state and trigger a re-render
+- `initialValue` - The initial state value (can be from props)
+
+### Template Syntax with `x`
+
+The `` x`...` `` template tag converts HTML-like syntax into virtual nodes:
+
+```javascript
+return x`
+  <div className="counter">
+    <h1>${name}</h1>
+    <div>${value}</div>
+  </div>
+`;
+```
+
+**Rules for `x` templates:**
+- Use `className` instead of `class` (DOM property names)
+- Constant attribute values must be double-quoted: `className="counter"`
+- Placeholders can be used for:
+  - Tag names: `<${MyComponent}>`
+  - Attribute values: `onclick=${handler}`
+  - Text content: `<div>${value}</div>`
+- Tags can be self-closing: `<img src="..." />`
+
+### Event Handlers
+
+Event handlers are attached as DOM properties:
+
+```javascript
+<button onclick=${() => setValue(value + 1)}>+</button>
+```
+
+- Use lowercase event names: `onclick`, `onchange`, `onsubmit`
+- Pass functions as placeholders (not strings)
+- Handlers can call state setters to trigger updates
+
+### Rendering
+
+The `render` function mounts the component to the DOM:
+
+```javascript
+render(h(Counter, { initialValue: 10 }), document.body);
+```
+
+- First argument: Virtual node created with `h(Component, props)`
+- Second argument: DOM container element
+- The component tree is rendered and patched into the container

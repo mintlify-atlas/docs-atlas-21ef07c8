@@ -1,0 +1,228 @@
+---
+title: "Custom Hooks"
+description: "Create reusable logic by composing useState and useEffect"
+---
+
+# Custom Hooks
+
+Custom hooks let you extract component logic into reusable functions. They're just JavaScript functions that use O!'s built-in hooks.
+
+## Window Width Hook
+
+Track the browser window width with automatic cleanup:
+
+```javascript
+import { useState, useEffect } from './o.mjs';
+
+const useWindowWidth = () => {
+  const [width, setWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup function removes the listener
+    return () => window.removeEventListener('resize', handleResize);
+  }, []); // Empty array means run once on mount
+
+  return width;
+};
+```
+
+### Using the Hook
+
+```javascript
+const ResponsiveComponent = () => {
+  const width = useWindowWidth();
+  
+  return x`
+    <div>
+      <h1>Window width: ${width}px</h1>
+      <p>${width < 768 ? 'Mobile' : 'Desktop'} view</p>
+    </div>
+  `;
+};
+```
+
+## Local Storage Hook
+
+Persist state to localStorage with automatic synchronization:
+
+```javascript
+import { useState, useEffect } from './o.mjs';
+
+const useLocalStorage = (key, initialValue) => {
+  // Initialize from localStorage or use initial value
+  const [value, setValue] = useState(() => {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : initialValue;
+  });
+
+  // Sync to localStorage when value changes
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [value, key]); // Re-run when value or key changes
+
+  return [value, setValue];
+};
+```
+
+### Using the Hook
+
+```javascript
+const PreferencesComponent = () => {
+  const [theme, setTheme] = useLocalStorage('theme', 'light');
+  const [fontSize, setFontSize] = useLocalStorage('fontSize', 16);
+
+  return x`
+    <div className=${theme}>
+      <h1 style="font-size: ${fontSize}px">Settings</h1>
+      <button onclick=${() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+        Toggle theme
+      </button>
+      <button onclick=${() => setFontSize(fontSize + 2)}>Increase font</button>
+      <button onclick=${() => setFontSize(fontSize - 2)}>Decrease font</button>
+    </div>
+  `;
+};
+```
+
+## Complete Example: Form with Persistence
+
+Combine multiple custom hooks:
+
+```javascript
+import { h, x, render, useState, useEffect } from './o.mjs';
+
+const useLocalStorage = (key, initialValue) => {
+  const [value, setValue] = useState(() => {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : initialValue;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [value, key]);
+
+  return [value, setValue];
+};
+
+const useDocumentTitle = (title) => {
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = title;
+    
+    // Restore previous title on cleanup
+    return () => {
+      document.title = prevTitle;
+    };
+  }, [title]);
+};
+
+const NoteApp = () => {
+  const [notes, setNotes] = useLocalStorage('notes', []);
+  const [input, setInput] = useState('');
+  
+  useDocumentTitle(`Notes (${notes.length})`);
+
+  const addNote = () => {
+    if (input.trim()) {
+      setNotes([...notes, { id: Date.now(), text: input }]);
+      setInput('');
+    }
+  };
+
+  const deleteNote = (id) => {
+    setNotes(notes.filter(note => note.id !== id));
+  };
+
+  return x`
+    <div className="note-app">
+      <h1>Persistent Notes</h1>
+      <div>
+        <input
+          type="text"
+          value=${input}
+          oninput=${(e) => setInput(e.target.value)}
+          placeholder="Write a note..."
+        />
+        <button onclick=${addNote}>Add Note</button>
+      </div>
+      <ul>
+        ${notes.map(note => h('li', { k: note.id },
+          h('span', {}, note.text),
+          h('button', { onclick: () => deleteNote(note.id) }, 'Delete')
+        ))}
+      </ul>
+    </div>
+  `;
+};
+
+render(h(NoteApp, {}), document.body);
+```
+
+## Key Concepts
+
+### Custom Hook Rules
+
+1. **Name starts with `use`**: This is a convention that makes hooks recognizable
+2. **Call hooks at the top level**: Don't call hooks inside loops, conditions, or nested functions
+3. **Hook order matters**: O! tracks hooks by call order, so it must be consistent
+
+### The `useEffect` Hook
+
+```javascript
+useEffect(callback, dependencies)
+```
+
+**Parameters:**
+- `callback` - Function to run after render
+- `dependencies` - Array of values that trigger re-run when changed
+
+**Return value from callback:**
+- Optional cleanup function that runs before component unmounts or before next effect
+
+**Dependency array patterns:**
+```javascript
+useEffect(() => { ... }, [])        // Run once on mount
+useEffect(() => { ... }, [value])  // Run when value changes
+useEffect(() => { ... })           // Run on every render (no deps array)
+```
+
+### Cleanup Functions
+
+Return a function from `useEffect` to clean up side effects:
+
+```javascript
+useEffect(() => {
+  const id = setInterval(() => console.log('tick'), 1000);
+  
+  return () => clearInterval(id); // Cleanup on unmount
+}, []);
+```
+
+**Common cleanup scenarios:**
+- Remove event listeners
+- Cancel timers/intervals
+- Abort fetch requests
+- Close connections
+- Restore previous state
+
+### Composing Hooks
+
+Custom hooks can use other custom hooks:
+
+```javascript
+const usePersistedCounter = (key, initialValue = 0) => {
+  const [count, setCount] = useLocalStorage(key, initialValue);
+  
+  useDocumentTitle(`Count: ${count}`);
+  
+  const increment = () => setCount(count + 1);
+  const decrement = () => setCount(count - 1);
+  
+  return { count, increment, decrement };
+};
+```
+
+This creates a powerful way to build reusable, composable logic.

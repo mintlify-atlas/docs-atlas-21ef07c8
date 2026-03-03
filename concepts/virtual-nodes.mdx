@@ -1,0 +1,178 @@
+---
+title: Virtual Nodes
+description: Understanding the core data structure that represents UI in O!
+---
+
+## What is a Virtual Node?
+
+A virtual node (VNode) is a lightweight JavaScript object that represents a piece of the UI. Instead of manipulating the DOM directly, O! works with these simple objects and efficiently updates the real DOM based on changes to the virtual representation.
+
+## VNode Structure
+
+Every virtual node in O! is an object with three properties:
+
+```typescript
+/**
+ * A virtual node object.
+ * @typedef VNode
+ * @type {object}
+ * @property {string|function} e Node name or a functional component
+ * @property {object} p Node properties (attributes)
+ * @property {Array.<VNode>} c Node children
+ */
+```
+
+### Property Breakdown
+
+- **`e` (element)**: The node name (HTML tag like `'div'` or `'button'`) or a functional component function
+- **`p` (properties)**: An object containing the node's attributes and properties
+- **`c` (children)**: An array of child VNodes or text content
+
+<Note>
+The single-letter property names (`e`, `p`, `c`) are used intentionally to reduce the minified JavaScript code size. This keeps O! under 1KB!
+</Note>
+
+## Creating Virtual Nodes
+
+Virtual nodes are created using the `h()` function:
+
+```javascript
+import { h } from 'o.mjs';
+
+// Create a simple div with a class
+const vnode = h('div', { className: 'container' });
+
+// Result:
+// { e: 'div', p: { className: 'container' }, c: [] }
+```
+
+### With Children
+
+Virtual nodes can contain other virtual nodes as children:
+
+```javascript
+const vnode = h('div', { className: 'container' },
+  h('h1', {}, 'Hello!'),
+  h('p', {}, 'Welcome to O!')
+);
+
+// Result:
+// {
+//   e: 'div',
+//   p: { className: 'container' },
+//   c: [
+//     { e: 'h1', p: {}, c: ['Hello!'] },
+//     { e: 'p', p: {}, c: ['Welcome to O!'] }
+//   ]
+// }
+```
+
+### With Properties
+
+Properties map directly to DOM node properties:
+
+```javascript
+const button = h('button', {
+  className: 'btn',
+  onclick: () => console.log('Clicked!'),
+  disabled: false
+}, 'Click Me');
+
+// Result:
+// {
+//   e: 'button',
+//   p: { className: 'btn', onclick: [Function], disabled: false },
+//   c: ['Click Me']
+// }
+```
+
+<Tip>
+Use `className` instead of `class`, as properties reflect DOM Node properties, not HTML attributes.
+</Tip>
+
+## Text Nodes
+
+Text content is represented as simple strings in the children array. When rendered, O! converts these to DOM text nodes:
+
+```javascript
+const text = 'Hello, World!';
+const paragraph = h('p', {}, text);
+
+// Result:
+// { e: 'p', p: {}, c: ['Hello, World!'] }
+```
+
+## Real-World Example
+
+Here's how a counter button structure looks as a virtual node:
+
+```javascript
+const counterUI = h('div', { className: 'counter' },
+  h('div', {}, '42'),
+  h('div', { className: 'row' },
+    h('button', { onclick: () => setValue(43) }, '+'),
+    h('button', { onclick: () => setValue(41) }, '-')
+  )
+);
+
+// Result structure:
+// {
+//   e: 'div',
+//   p: { className: 'counter' },
+//   c: [
+//     { e: 'div', p: {}, c: ['42'] },
+//     {
+//       e: 'div',
+//       p: { className: 'row' },
+//       c: [
+//         { e: 'button', p: { onclick: [Function] }, c: ['+'] },
+//         { e: 'button', p: { onclick: [Function] }, c: ['-'] }
+//       ]
+//     }
+//   ]
+// }
+```
+
+## How VNodes Represent UI
+
+Virtual nodes create a tree structure that mirrors the DOM:
+
+1. **Lightweight**: VNodes are plain JavaScript objects, much faster to create and compare than real DOM nodes
+2. **Declarative**: You describe what the UI should look like, not how to build it
+3. **Efficient**: O! can diff two VNode trees and only update the parts of the DOM that changed
+
+```javascript
+// Virtual representation
+const vnode = h('div', { className: 'app' },
+  h('h1', {}, 'My App')
+);
+
+// Becomes real DOM:
+// <div class="app">
+//   <h1>My App</h1>
+// </div>
+```
+
+## Component VNodes
+
+Virtual nodes can also represent functional components by using a function as the `e` property:
+
+```javascript
+const MyComponent = (props) => {
+  return h('div', {}, props.message);
+};
+
+// Component as a VNode
+const vnode = h(MyComponent, { message: 'Hello!' });
+
+// Result:
+// { e: [Function: MyComponent], p: { message: 'Hello!' }, c: [] }
+```
+
+When O! renders this VNode, it executes the function and replaces it with the returned VNode structure.
+
+## Next Steps
+
+- Learn about [Functional Components](/concepts/functional-components) that return VNodes
+- Explore the [Template Syntax](/concepts/template-syntax) for easier VNode creation
+- See the [h() function](/api/h) API reference
